@@ -483,8 +483,22 @@
                       </div>
                     </div>
 
-                    <label class="field-label">💡 Đóng góp & Tri thức cốt lõi của bài báo *</label>
-                    <textarea id="editPaperCore" class="text-area" rows="4" placeholder="Ghi lại đóng góp cốt lõi, cơ chế hoặc phát hiện quan trọng nhất của bài báo này..."></textarea>
+                    <label class="field-label">💡 Trụ cột 1: Đóng góp & Tri thức cốt lõi của bài báo *</label>
+                    <textarea id="editPaperCore" class="text-area" rows="3" placeholder="Ghi lại đóng góp cốt lõi, cơ chế hoặc phát hiện quan trọng nhất của bài báo này..."></textarea>
+
+                    <label class="field-label">🔬 Trụ cột 2: Quá trình xây dựng giải pháp (Methodology Pipeline)</label>
+                    <textarea id="editPaperMethodPipeline" class="text-area" rows="2" placeholder="Tóm tắt từng bước thuật toán, kiến trúc hoặc quy trình thực nghiệm để đi đến kết luận..."></textarea>
+
+                    <div class="form-grid-2">
+                      <div>
+                        <label class="field-label">📦 Trụ cột 4: Nguyên liệu & Dataset</label>
+                        <input id="editPaperMaterials" class="text-field" placeholder="VD: Tập dữ liệu, kích thước tham số, phần cứng..." />
+                      </div>
+                      <div>
+                        <label class="field-label">📊 Trụ cột 5: Bằng chứng & Kết quả</label>
+                        <input id="editPaperEvidence" class="text-field" placeholder="VD: Cải thiện 6.8% F1, tốc độ tăng 42%..." />
+                      </div>
+                    </div>
                   </div>
 
                   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
@@ -650,16 +664,50 @@
                   <textarea id="aiAttackInstruction" class="text-area" rows="3" placeholder="Yêu cầu AI tìm các bài báo củng cố và các bài báo tấn công...">Tìm các bài báo củng cố/kế thừa (Defense) và các bài báo TẤN CÔNG/BÁC BỎ (Attacker/Refutation) chỉ ra điều kiện biên làm bài báo này bị sai (ví dụ: khi các hàm gán nhãn có tương quan ẩn phức tạp hoặc dữ liệu bị covariate shift). Chỉ ra khe hở nghiên cứu chưa ai giải quyết.</textarea>
                 </div>
 
-                <div class="ai-action-buttons">
-                  <button class="primary-button" id="btnExecuteAiQuery">
-                    🚀 Gọi AI bằng API Key cá nhân
-                  </button>
-                  <button class="secondary-button" id="btnCopyPromptAndListen" title="Copy lệnh Prompt chuẩn để hỏi trên web AI rồi dán vào Bộ Trung Gian">
-                    📋 Chép Lệnh Prompt Chuẩn
-                  </button>
-                  <button class="outline-button" id="btnSimulateClaudeWeakLabel" title="Xem thử cách Bộ Trung Gian bóc tách văn bản AI thành Đồ thị 3D">
-                    ⚡ Xem mẫu chuẩn hóa
-                  </button>
+                <!-- TWO-STAGE META-PROMPTING PIPELINE -->
+                <div class="ai-meta-pipeline-box">
+                  <div class="pipeline-step-header">
+                    <span class="pipeline-num">PHA 1</span>
+                    <b>TINH CHẾ PROMPT NGHIÊN CỨU (META-PROMPT ARCHITECT)</b>
+                  </div>
+                  <div class="pipeline-step-desc">
+                    Tái cấu trúc luận điểm thô của bạn thành Super Prompt chuẩn hóa cho mô hình đã chọn (Gemini / Claude / GPT). Nếu có API Key, AI Epistemologist sẽ tự động tinh chế sâu; nếu chưa có Key, hệ thống sẽ tự sinh Super Prompt mẫu để bạn copy.
+                  </div>
+                  <div class="ai-action-buttons" style="margin-top:8px">
+                    <button type="button" class="secondary-button" id="btnRefinePromptStage1" style="background:#4338ca;color:#fff;border-color:#6366f1">
+                      ✨ AI Tinh Chế Prompt (Pha 1)
+                    </button>
+                    <button type="button" class="secondary-button" id="btnCopyPromptAndListen" title="Copy lệnh Prompt để hỏi trên web AI rồi dán vào Bộ Trung Gian">
+                      📋 Chép Prompt Sang Web Ngoài
+                    </button>
+                    <button type="button" class="outline-button" id="btnSimulateClaudeWeakLabel" title="Xem mẫu chuẩn hóa sẵn có">
+                      ⚡ Nạp Mẫu Có Sẵn
+                    </button>
+                  </div>
+
+                  <!-- REFINED SUPER PROMPT BOX -->
+                  <div id="refinedPromptContainer" style="margin-top:12px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                      <label class="field-label" style="margin:0;font-size:11px;font-weight:700;color:#a5b4fc">
+                        📝 Super Prompt Đã Tinh Chế (Xem & chỉnh sửa trước khi chạy Pha 2):
+                      </label>
+                      <span id="promptStatusBadge" class="status-pill" style="font-size:10px">Sẵn sàng tinh chế</span>
+                    </div>
+                    <textarea id="aiRefinedPromptBox" class="text-area mono-area" rows="6" placeholder="Bấm '✨ AI Tinh Chế Prompt (Pha 1)' để sinh Super Prompt tối ưu hóa cho mô hình mục tiêu..."></textarea>
+                  </div>
+
+                  <div class="pipeline-step-header" style="margin-top:16px">
+                    <span class="pipeline-num" style="background:#059669">PHA 2</span>
+                    <b>KHAI THÁC & BÓC TÁCH ĐỒ THỊ 3D (DIALECTIC EXTRACTION)</b>
+                  </div>
+                  <div class="pipeline-step-desc">
+                    Thực thi Super Prompt ở trên bằng API Key cá nhân của bạn để trích xuất 7 Trụ Cột Tri Thức và các mối quan hệ Tấn công/Kế thừa.
+                  </div>
+                  <div class="ai-action-buttons" style="margin-top:8px">
+                    <button type="button" class="primary-button" id="btnExecuteAiQuery" style="background:#059669;border-color:#10b981">
+                      🚀 Khai Thác Đồ Thị (Pha 2)
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

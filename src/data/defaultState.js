@@ -64,8 +64,16 @@ export function createDefaultState() {
         url: 'https://arxiv.org/abs/1711.10160',
         ecosystemId: 'eco-weak-label',
         problemId: 'prob-weak-noise',
+        provenance: {
+          type: 'system',
+          origin: 'Mẫu chuẩn hệ thống Filio3D',
+          model: null,
+          timestamp: 1714000000000,
+        },
         coreKnowledge:
           'Bài báo GỐC của nhánh Weak Label: Kết hợp nhiều quy tắc gán nhãn yếu (Labeling Functions) bằng mô hình sinh để ước lượng nhãn thật mà không cần gán nhãn tay.',
+        methodPipeline:
+          'Xây dựng Generative Model ước lượng trọng số tin cậy của các hàm gán nhãn Heuristic -> Tối ưu hóa ma trận đồng xuất hiện -> Sinh phân phối nhãn xác suất không cần nhãn người.',
         conditions: [
           {
             category: 'method',
@@ -78,6 +86,10 @@ export function createDefaultState() {
             value: 'Độ chính xác trung bình của các quy tắc phải tốt hơn đoán ngẫu nhiên (>50%)',
           },
         ],
+        materials:
+          'Tập dữ liệu Text & Biomedical (TREC, Sprout, CDR), các bộ heuristic viết bằng Python/Regex, mô hình phân loại Logistic Regression & LSTM.',
+        evidence:
+          'Đạt độ chính xác tương đương huấn luyện có giám sát với nhãn tay (chênh lệch dưới 1-2 điểm F1), nhưng giảm chi phí gán nhãn tới 10 lần.',
         limitations:
           'Sụp đổ hoàn toàn khi các hàm gán nhãn yếu bị phụ thuộc/tương quan ngầm (correlated errors) hoặc khi lớp dữ liệu cực kỳ mất cân bằng.',
         internalChain: [
@@ -96,8 +108,16 @@ export function createDefaultState() {
         url: 'https://aclanthology.org/2021.acl-long.80',
         ecosystemId: 'eco-weak-label',
         problemId: 'prob-weak-noise',
+        provenance: {
+          type: 'system',
+          origin: 'Mẫu chuẩn hệ thống Filio3D',
+          model: null,
+          timestamp: 1714000000000,
+        },
         coreKnowledge:
           'Bài báo CON kế thừa Snorkel (wl-1): Dùng Contrastive Learning và độ tự tin của mô hình để tự lọc bớt các mẫu nhãn yếu bị nhiễu trong quá trình huấn luyện.',
+        methodPipeline:
+          'Tích hợp Contrastive Learning vào Self-Training để kéo gần các biểu diễn cùng nhãn thật -> Lọc mẫu nhiễu dựa trên ngưỡng độ tự tin (Confidence Thresholding).',
         conditions: [
           {
             category: 'method',
@@ -110,6 +130,10 @@ export function createDefaultState() {
             value: 'Các lớp có kích thước tương đương nhau, không có lớp hiếm (long-tail)',
           },
         ],
+        materials:
+          'Pretrained Language Models (RoBERTa, BERT), bộ benchmark GLUE (SST-2, IMDB, AGNews) dưới nhãn yếu sinh từ Snorkel.',
+        evidence:
+          'Cải thiện 6.8% F1 so với huấn luyện trực tiếp trên nhãn yếu của Snorkel; lọc bỏ được 82% mẫu nhiễu ngẫu nhiên.',
         limitations:
           'Khi gặp dữ liệu đuôi dài (long-tail), cơ chế lọc nhiễu theo ngưỡng tự tin sẽ xóa sạch toàn bộ mẫu của lớp hiếm vì tưởng nhầm là nhãn sai!',
         internalChain: [
@@ -128,8 +152,16 @@ export function createDefaultState() {
         url: 'https://proceedings.mlr.press/v202',
         ecosystemId: 'eco-weak-label',
         problemId: 'prob-weak-noise',
+        provenance: {
+          type: 'system',
+          origin: 'Mẫu chuẩn hệ thống Filio3D',
+          model: null,
+          timestamp: 1714000000000,
+        },
         coreKnowledge:
           'BÀI TẤN CÔNG / BÁC BỎ Snorkel (wl-1): Chứng minh trong thực tế các chuyên gia viết hàm nhãn yếu luôn dùng chung từ khóa bề mặt, tạo ra nhiễu tương quan làm mô hình của wl-1 hội tụ ngược về nhãn sai!',
+        methodPipeline:
+          'Thiết kế đòn tấn công đối kháng thông qua phân tích ma trận hiệp phương sai giữa các quy tắc gán nhãn -> Đo độ sai lệch khi các hàm nhãn cùng dựa trên từ khóa bề mặt.',
         conditions: [
           {
             category: 'data',
@@ -142,6 +174,10 @@ export function createDefaultState() {
             value: 'Đánh giá trên tập test không chứa từ khóa lối tắt (Shortcut-free OOD test)',
           },
         ],
+        materials:
+          'Tập dữ liệu Stanford Sentiment Treebank và YouTube Spam với các bộ hàm gán nhãn cố tình gài từ khóa tương quan (Spurious triggers).',
+        evidence:
+          'Chứng minh khi 3 hàm nhãn trở lên có tương quan ẩn, tỷ lệ lỗi của Snorkel tăng vọt từ 12% lên 47%, mô hình hội tụ ngược về nhãn sai!',
         limitations:
           'Chỉ mới chỉ ra sự sụp đổ của wl-1 và wl-2; phương pháp sửa lỗi đề xuất đòi hỏi phải biết trước cấu trúc đồ thị phụ thuộc giữa các hàm nhãn.',
         internalChain: [
@@ -160,8 +196,16 @@ export function createDefaultState() {
         url: 'https://neurips.cc/virtual/2024',
         ecosystemId: 'eco-weak-label',
         problemId: 'prob-weak-noise',
+        provenance: {
+          type: 'system',
+          origin: 'Mẫu chuẩn hệ thống Filio3D',
+          model: null,
+          timestamp: 1714000000000,
+        },
         coreKnowledge:
           'BÀI TẤN CÔNG COSINE (wl-2): Chứng minh cơ chế lọc mẫu theo ngưỡng tự tin của wl-2 xóa sổ 89% mẫu thuộc lớp hiếm (ví dụ ca bệnh hiếm), làm mô hình mù hoàn toàn trên lớp thiểu số.',
+        methodPipeline:
+          'Theo dõi động lực học gradient và trần hội tụ của các lớp thiểu số qua từng vòng lặp Self-training dưới phân phối mất cân bằng cực độ.',
         conditions: [
           {
             category: 'data',
@@ -169,6 +213,10 @@ export function createDefaultState() {
             value: 'Dữ liệu lệch (Imbalance ratio > 20:1) như chẩn đoán y khoa hoặc phát hiện gian lận',
           },
         ],
+        materials:
+          'Bộ dữ liệu chẩn đoán ung thư MIMIC-III và gian lận tín dụng Kaggle với tỷ lệ mất cân bằng từ 20:1 đến 100:1.',
+        evidence:
+          'Cơ chế lọc theo độ tự tin của COSINE xóa sạch 89% mẫu thuộc lớp hiếm, khiến mô hình đạt Recall = 0% trên lớp bệnh nhân nặng.',
         limitations:
           'Giải pháp hiệu chỉnh ngưỡng theo tần suất lớp vẫn bị đánh lừa nếu lớp hiếm đồng thời chịu nhiễu tương quan từ wl-3.',
         internalChain: [
@@ -187,8 +235,16 @@ export function createDefaultState() {
         url: 'https://openreview.net/forum?id=iclr2025',
         ecosystemId: 'eco-weak-label',
         problemId: 'prob-weak-noise',
+        provenance: {
+          type: 'system',
+          origin: 'Mẫu chuẩn hệ thống Filio3D',
+          model: null,
+          timestamp: 1714000000000,
+        },
         coreKnowledge:
           'BÀI KẾ THỪA MỚI NHẤT: Khắc phục đòn tấn công của wl-3 bằng cách tách biến nhân quả (Causal Content) khỏi biến lối tắt của hàm gán nhãn yếu.',
+        methodPipeline:
+          'Kết hợp Invariant Risk Minimization (IRM) với Đồ thị nhãn yếu: Tách biểu diễn thành phần nhân quả bất biến (Causal core) khỏi biến nhiễu ngoại cảnh.',
         conditions: [
           {
             category: 'data',
@@ -196,6 +252,10 @@ export function createDefaultState() {
             value: 'Cần dữ liệu thu thập từ ít nhất 2 môi trường (environments) khác nhau để tách bất biến nhân quả',
           },
         ],
+        materials:
+          'Dữ liệu đa miền (Multi-domain text & image benchmarks) thu thập từ ít nhất 2 bệnh viện / nguồn dữ liệu độc lập.',
+        evidence:
+          'Khôi phục F1 từ 51% lên 84% trong điều kiện có nhiễu tương quan nghiêm trọng của wl-3, miễn là có dữ liệu từ >= 2 môi trường.',
         limitations:
           'Chưa giải quyết được bài toán kết hợp đồng thời Nhiễu tương quan (wl-3) VÀ Sụp đổ lớp hiếm (wl-4) khi chỉ có 1 môi trường duy nhất.',
         internalChain: [
@@ -214,11 +274,23 @@ export function createDefaultState() {
         url: 'https://aclanthology.org/2024.emnlp',
         ecosystemId: 'eco-rag',
         problemId: 'prob-scope-stripping',
+        provenance: {
+          type: 'system',
+          origin: 'Mẫu chuẩn hệ thống Filio3D',
+          model: null,
+          timestamp: 1714000000000,
+        },
         coreKnowledge:
           'Trích xuất kết luận chính đạt F1 = 88%, nhưng làm rơi mất 61% các điều kiện tồn tại (cỡ mẫu, giả định biên) đi kèm kết luận đó.',
+        methodPipeline:
+          'Xây dựng bộ đo Scope-Recall kiểm định mức độ bảo toàn các mệnh đề phụ thuộc điều kiện khi đưa bài báo qua các LLM tóm tắt phổ biến.',
         conditions: [
           { category: 'data', factor: 'Đầu vào', value: 'Chỉ tóm tắt từ Abstract và Conclusion' },
         ],
+        materials:
+          'Bộ dữ liệu 500 bài báo y sinh và khoa học máy tính với chú giải thủ công về các điều kiện biên của từng tuyên bố (claim).',
+        evidence:
+          'LLM chỉ bảo toàn được 39% điều kiện tồn tại dù trích xuất tuyên bố chính đạt F1 = 88%, tạo nguy cơ ngộ nhận khoa học nghiêm trọng.',
         limitations: 'Làm người đọc tưởng kết luận trong điều kiện hẹp là chân lý phổ quát.',
         internalChain: [
           { stage: 'Vấn đề', text: 'Đo độ trung thực khi LLM tóm tắt bài báo' },
@@ -235,11 +307,23 @@ export function createDefaultState() {
         url: 'https://neurips.cc/virtual/2024',
         ecosystemId: 'eco-rag',
         problemId: 'prob-scope-stripping',
+        provenance: {
+          type: 'system',
+          origin: 'Mẫu chuẩn hệ thống Filio3D',
+          model: null,
+          timestamp: 1714000000000,
+        },
         coreKnowledge:
           'Biểu diễn mỗi bài báo dưới dạng cặp (Mệnh đề + Điều kiện tồn tại) giúp phân giải 74% các mâu thuẫn bề mặt giữa các bài báo.',
+        methodPipeline:
+          'Mô hình hóa đồ thị tri thức 2 tầng: Nút thực thể bài báo gắn kèm vector điều kiện biên; tính độ tương thích miền trước khi xác lập cạnh mâu thuẫn.',
         conditions: [
           { category: 'method', factor: 'Cấu trúc đồ thị', value: 'Tách riêng nút Bài báo, Điều kiện biên và cạnh Tương khắc' },
         ],
+        materials:
+          '1,200 cặp bài báo có kết luận trái ngược nhau trên PubMed và arXiv.',
+        evidence:
+          'Phân giải thành công 74% mâu thuẫn biểu kiến: chỉ ra hai bài không hề phủ định nhau mà chỉ đúng ở hai tập điều kiện khác nhau.',
         limitations:
           'Chưa tích hợp khả năng tự động tìm câu hỏi mới khi người dùng xóa câu hỏi nghiên cứu cũ.',
         internalChain: [
@@ -257,11 +341,23 @@ export function createDefaultState() {
         url: 'https://doi.org/10.1038/s42256-024-00833-5',
         ecosystemId: 'eco-synthesis',
         problemId: 'prob-speed-rigor',
+        provenance: {
+          type: 'system',
+          origin: 'Mẫu chuẩn hệ thống Filio3D',
+          model: null,
+          timestamp: 1714000000000,
+        },
         coreKnowledge:
           'LLM giảm 42% thời gian gom tài liệu ban đầu, nhưng không làm tăng chất lượng thẩm định lập luận.',
+        methodPipeline:
+          'Thử nghiệm ngẫu nhiên có đối chứng (RCT) trên 120 nghiên cứu sinh thực hiện khảo cứu tài liệu với và không có công cụ hỗ trợ AI.',
         conditions: [
           { category: 'data', factor: 'Quy mô', value: 'Tác vụ ngắn < 10 bài báo trong 60 phút' },
         ],
+        materials:
+          '120 nhà nghiên cứu, 5 chủ đề khảo sát khoa học chuẩn hóa, hệ thống ghi log thao tác đọc và trích xuất.',
+        evidence:
+          'Thời gian hoàn thành tổng quan giảm từ 95 phút xuống 55 phút (giảm 42%), nhưng số lượng giả định sai được nhận diện không có ý nghĩa thống kê (p > 0.05).',
         limitations: 'Không phát hiện được khi câu hỏi nghiên cứu ban đầu bị đặt sai.',
         internalChain: [
           { stage: 'Vấn đề', text: 'Đo tốc độ tổng hợp tài liệu bằng LLM' },
@@ -277,11 +373,23 @@ export function createDefaultState() {
         url: 'https://science.org',
         ecosystemId: 'eco-synthesis',
         problemId: 'prob-speed-rigor',
+        provenance: {
+          type: 'system',
+          origin: 'Mẫu chuẩn hệ thống Filio3D',
+          model: null,
+          timestamp: 1714000000000,
+        },
         coreKnowledge:
           'BÀI TẤN CÔNG / TƯƠNG KHẮC với Liu (syn-1): Trong dài hạn 6 tháng, đọc tóm tắt danh sách phẳng làm tăng thiên kiến xác nhận và thu hẹp phả hệ trích dẫn.',
+        methodPipeline:
+          'Nghiên cứu đoàn hệ dọc (Longitudinal Cohort Study) theo dõi 85 phòng thí nghiệm trong 6 tháng: phân tích mạng lưới trích dẫn và tỷ lệ chuyển hướng đề tài.',
         conditions: [
           { category: 'environment', factor: 'Thời gian', value: 'Quan sát thực địa dài hạn 6 tháng' },
         ],
+        materials:
+          'Dữ liệu theo dõi nhật ký nghiên cứu của 85 lab trong 6 tháng, hơn 15,000 lượt tra cứu tài liệu học thuật.',
+        evidence:
+          'Đoàn hệ chỉ dùng AI tóm tắt phẳng có độ phân kỳ trích dẫn hẹp hơn 31% và tỷ lệ phát hiện lỗ hổng phản biện thấp hơn 48% so với nhóm đọc phả hệ đa chiều.',
         limitations: 'Chưa thử nghiệm trên giao diện đồ thị 3D có hiển thị cạnh Bác bỏ/Tương khắc.',
         internalChain: [
           { stage: 'Vấn đề', text: 'Hệ quả dài hạn của việc đọc tóm tắt phẳng' },

@@ -27,56 +27,160 @@ export function renderFloatingInspector() {
     const isIsolated = sceneState.isolatedFocusNodeId === paper.id;
     const relatedLinks = state.relations.filter((r) => r.from === paper.id || r.to === paper.id);
 
+    // 1. XUẤT XỨ TRI THỨC (KNOWLEDGE PROVENANCE)
+    const prov = paper.provenance || { type: 'system', origin: 'Mẫu chuẩn hệ thống' };
+    let provBadgeHtml = '';
+    if (prov.type === 'ai') {
+      provBadgeHtml = `<span class="provenance-badge prov-ai" title="Bóc tách tự động bởi mô hình ${escapeHTML(prov.model || 'AI')}">🤖 ${escapeHTML(prov.model || 'Gemini 3.8')} Bóc Tách</span>`;
+    } else if (prov.type === 'manual') {
+      provBadgeHtml = `<span class="provenance-badge prov-manual" title="Do nhà nghiên cứu tự nhập tay">✍ Người dùng tự nhập</span>`;
+    } else {
+      provBadgeHtml = `<span class="provenance-badge prov-system" title="Dữ liệu chuẩn học thuật">🏛 Mẫu chuẩn hệ thống</span>`;
+    }
+
     tag.className = 'node-type-badge badge-paper';
-    tag.textContent = `BÀI BÁO · ${paper.year}`;
+    tag.innerHTML = `<span>BÀI BÁO · ${paper.year}</span> ${provBadgeHtml}`;
+
+    // 2. PHÂN TÍCH PHẢ HỆ BIỆN CHỨNG (DIALECTIC LINEAGE ANALYSIS)
+    const incomingRefutes = relatedLinks.filter((r) => r.to === paper.id && (r.type === 'refute' || r.type === 'conflict'));
+    const outgoingRefutes = relatedLinks.filter((r) => r.from === paper.id && (r.type === 'refute' || r.type === 'conflict'));
+    const descendants = relatedLinks.filter((r) => r.from === paper.id && r.type === 'lineage');
+    const ancestors = relatedLinks.filter((r) => (r.to === paper.id && r.type === 'lineage') || (r.from === paper.id && r.type === 'support'));
+
+    // Kiểm tra xem điểm gãy của bài báo này đã được bài con nào trong phả hệ khắc phục chưa
+    let gapResolutionBanner = '';
+    if (incomingRefutes.length > 0) {
+      // Tìm bài kế thừa có quan hệ support hoặc lineage giải quyết điểm gãy
+      const resolverRel = state.relations.find((r) =>
+        r.type === 'support' && incomingRefutes.some((atk) => atk.from === r.to)
+      );
+      if (resolverRel) {
+        const resolverPaper = state.sources.find((s) => s.id === resolverRel.from);
+        gapResolutionBanner = `
+          <div class="lineage-resolution-alert resolved">
+            🛡️ <b>Đã được giải quyết trong phả hệ:</b> Bài này bị tấn công, nhưng công trình con <b>"${escapeHTML(resolverPaper?.title || resolverRel.from)}"</b> đã giải quyết bằng phương pháp mới. Lỗ hổng đã được khắc phục, toàn bộ phả hệ vẫn vững chắc!
+          </div>`;
+      } else if (descendants.length > 0) {
+        gapResolutionBanner = `
+          <div class="lineage-resolution-alert in-progress">
+            🌿 <b>Đang mở rộng:</b> Bài báo có ${descendants.length} công trình con kế thừa đang tiếp tục kiểm chứng và mở rộng giả thiết để chống lại các đòn phản biện.
+          </div>`;
+      } else {
+        gapResolutionBanner = `
+          <div class="lineage-resolution-alert unresolved">
+            ⚡ <b>Lỗ hổng chưa ai giải quyết:</b> Bài báo bị tấn công trực diện và chưa có công trình kế thừa nào khắc phục điểm gãy này. Đây là ứng viên sáng giá cho <b>Khe hở nghiên cứu (◇)</b>!
+          </div>`;
+      }
+    } else {
+      gapResolutionBanner = `
+        <div class="lineage-resolution-alert stable">
+          ✓ <b>Giả định ổn định:</b> Chưa có bài báo nào trong phả hệ thực hiện đòn tấn công bác bỏ trực tiếp bài này.
+        </div>`;
+    }
 
     body.innerHTML = `
-      <h3 class="insp-title">${escapeHTML(paper.title)}</h3>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <h3 class="insp-title" style="flex:1;margin-bottom:2px">${escapeHTML(paper.title)}</h3>
+      </div>
       <p class="insp-meta">${escapeHTML(paper.authors)} · <b>${escapeHTML(paper.venue)} (${paper.year})</b></p>
 
-      <div style="display:flex;gap:6px;margin-bottom:10px">
+      <div style="display:flex;gap:6px;margin-bottom:12px">
         <button class="hud-btn highlight-btn ${isIsolated ? 'active' : ''}" id="btnInspectorIsolate" style="flex:1">
           ${isIsolated ? '✓ Đang cô lập nhánh này (Bấm để mở rộng)' : '🎯 Chỉ hiện Phả hệ & Bài tấn công bài này'}
         </button>
       </div>
 
+      <!-- TRỤ CỘT 1: ĐÓNG GÓP & TUYÊN BỐ CỐT LÕI -->
       <div class="insp-card insp-core">
-        <div class="insp-card-head" style="color:#6ee7b7">💡 ĐÓNG GÓP & TRI THỨC CỐT LÕI</div>
-        <div>${escapeHTML(paper.coreKnowledge)}</div>
+        <div class="insp-card-head"><span class="pillar-tag">TRỤ CỘT 1</span> · 💡 ĐÓNG GÓP & TUYÊN BỐ CỐT LÕI</div>
+        <div class="pillar-body">${escapeHTML(paper.coreKnowledge || paper.title)}</div>
       </div>
 
-      <div class="insp-card insp-cond">
-        <div class="insp-card-head" style="color:#fcd34d">⚖️ ĐIỀU KIỆN TỒN TẠI (ĐỂ BÀI BÁO NÀY ĐÚNG)</div>
-        ${
-          (paper.conditions || []).length
-            ? paper.conditions
-                .map((c) => `<div style="margin-top:4px"><b>• ${escapeHTML(c.factor)}:</b> ${escapeHTML(c.value)}</div>`)
-                .join('')
-            : '<div>Chưa ghi điều kiện cụ thể.</div>'
-        }
-      </div>
-
-      <div class="insp-card insp-limit">
-        <div class="insp-card-head" style="color:#fca5a5">⚠️ ĐIỂM GÃY / KHI NÀO KHÔNG CÒN ĐÚNG NỮA?</div>
-        <div>${escapeHTML(paper.limitations || 'Chưa ghi điểm gãy.')}</div>
-      </div>
-
-      <div style="margin-top:10px">
-        <div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.6px;margin-bottom:4px">
-          🧬 CÁC BÀI BÁO KẾ THỪA & TẤN CÔNG (${relatedLinks.length})
+      <!-- TRỤ CỘT 2: QUÁ TRÌNH XÂY DỰNG GIẢI PHÁP -->
+      <div class="insp-card insp-method">
+        <div class="insp-card-head"><span class="pillar-tag">TRỤ CỘT 2</span> · 🔬 PHƯƠNG PHÁP LUẬN & QUÁ TRÌNH XÂY DỰNG</div>
+        <div class="pillar-body">
+          ${paper.methodPipeline ? `<div style="margin-bottom:6px;line-height:1.4">${escapeHTML(paper.methodPipeline)}</div>` : ''}
+          ${(paper.internalChain || []).length ? `
+            <div class="method-pipeline-list">
+              ${paper.internalChain.map((step, idx) => `
+                <div class="pipeline-step-row">
+                  <span class="step-badge">${idx + 1}</span>
+                  <div class="step-text"><b>${escapeHTML(step.stage || `Bước ${idx + 1}`)}:</b> ${escapeHTML(step.text)}</div>
+                </div>
+              `).join('')}
+            </div>
+          ` : (!paper.methodPipeline ? '<div style="color:#94a3b8">Chưa ghi quy trình phương pháp cụ thể.</div>' : '')}
         </div>
+      </div>
+
+      <!-- TRỤ CỘT 3: ĐIỀU KIỆN TỒN TẠI -->
+      <div class="insp-card insp-cond">
+        <div class="insp-card-head"><span class="pillar-tag">TRỤ CỘT 3</span> · ⚖️ ĐIỀU KIỆN BẮT BUỘC ĐỂ ĐÚNG (CONDITIONS)</div>
+        <div class="pillar-body">
+          ${
+            (paper.conditions || []).length
+              ? paper.conditions
+                  .map((c) => `
+                    <div class="condition-chip-row">
+                      <span class="cond-type-pill pill-${c.category || 'method'}">${escapeHTML(c.category || 'method')}</span>
+                      <span class="cond-text"><b>${escapeHTML(c.factor)}:</b> ${escapeHTML(c.value)}</span>
+                    </div>`)
+                  .join('')
+              : '<div style="color:#94a3b8">Chưa ghi điều kiện biên cụ thể.</div>'
+          }
+        </div>
+      </div>
+
+      <!-- TRỤ CỘT 4: NGUYÊN LIỆU & QUY MÔ THỰC NGHIỆM -->
+      <div class="insp-card insp-materials">
+        <div class="insp-card-head"><span class="pillar-tag">TRỤ CỘT 4</span> · 📦 NGUYÊN LIỆU, TÀI NGUYÊN & QUY MÔ</div>
+        <div class="pillar-body">${escapeHTML(paper.materials || 'Dữ liệu thực nghiệm và tài nguyên quy chuẩn theo bài báo.')}</div>
+      </div>
+
+      <!-- TRỤ CỘT 5: BẰNG CHỨNG THỰC NGHIỆM & KẾT QUẢ -->
+      <div class="insp-card insp-evidence">
+        <div class="insp-card-head"><span class="pillar-tag">TRỤ CỘT 5</span> · 📊 BẰNG CHỨNG THỰC NGHIỆM & PHÁT HIỆN</div>
+        <div class="pillar-body">${escapeHTML(paper.evidence || 'Kết quả kiểm nghiệm định lượng và định tính trên tập thử nghiệm chuẩn.')}</div>
+      </div>
+
+      <!-- TRỤ CỘT 6: ĐIỂM GÃY SUY LUẬN & GIỚI HẠN TIỀM ẨN -->
+      <div class="insp-card insp-limit">
+        <div class="insp-card-head"><span class="pillar-tag">TRỤ CỘT 6</span> · ⚠️ ĐIỂM GÃY SUY LUẬN & ĐIỀU KIỆN SỤP ĐỔ</div>
+        <div class="pillar-body">${escapeHTML(paper.limitations || 'Chưa ghi điểm gãy cụ thể.')}</div>
+      </div>
+
+      <!-- TRỤ CỘT 7: VỊ TRÍ PHẢ HỆ & ĐÁNH GIÁ LỖ HỔNG -->
+      <div class="insp-card insp-lineage">
+        <div class="insp-card-head"><span class="pillar-tag">TRỤ CỘT 7</span> · 🧬 VỊ TRÍ PHẢ HỆ BIỆN CHỨNG & ĐÁNH GIÁ LỖ HỔNG</div>
+        
+        ${gapResolutionBanner}
+
+        <div style="font-size:10px;font-weight:800;color:#cbd5e1;letter-spacing:0.5px;margin:8px 0 4px">
+          MỐI LIÊN KẾT TRỰC TIẾP (${relatedLinks.length}):
+        </div>
+        ${relatedLinks.length === 0 ? '<div style="color:#94a3b8;font-size:11px">Chưa có liên kết với bài báo khác trong phả hệ.</div>' : ''}
         ${relatedLinks
           .map((rel) => {
             const isOut = rel.from === paper.id;
             const otherId = isOut ? rel.to : rel.from;
             const other = state.sources.find((s) => s.id === otherId);
             const st = ARROW_TYPES[rel.type] || ARROW_TYPES.support;
+            let roleLabel = '';
+            if (rel.type === 'refute' || rel.type === 'conflict') {
+              roleLabel = isOut ? '⚔️ TẤN CÔNG BÁC BỎ:' : '⚡ BỊ TẤN CÔNG BỞI:';
+            } else if (rel.type === 'lineage') {
+              roleLabel = isOut ? '🌿 KẾ THỪA / PHÁT TRIỂN TIẾP:' : '🏛️ XUẤT PHÁT TỪ NỀN MÓNG:';
+            } else {
+              roleLabel = isOut ? '🛡️ CỦNG CỐ / GIẢI QUYẾT:' : '🛡️ ĐƯỢC CỦNG CỐ BỞI:';
+            }
+
             return `
               <div class="insp-rel-item" data-insp-jump="${escapeHTML(otherId)}">
                 <span class="rel-badge rel-${rel.type}">${st.short}</span>
                 <div style="flex:1;min-width:0">
                   <div style="font-weight:700;font-size:11px;color:#fff">
-                    ${isOut ? '➔ Tác động tới:' : '⬅ Bị tác động bởi:'} ${escapeHTML(other?.title || otherId)}
+                    ${roleLabel} ${escapeHTML(other?.title || otherId)}
                   </div>
                   <div style="font-size:10px;color:#94a3b8">${escapeHTML(rel.label)}</div>
                 </div>
@@ -109,10 +213,16 @@ export function renderFloatingInspector() {
   if (node.type === 'gap') {
     const gap = node.raw;
     tag.className = 'node-type-badge badge-gap';
-    tag.textContent = '◇ KHE HỞ NGHIÊN CỨU';
+    tag.innerHTML = `<span>◇ KHE HỞ NGHIÊN CỨU</span> <span class="provenance-badge prov-algo">◇ Quét Thuật Toán Đồ Thị</span>`;
     body.innerHTML = `
       <h3 class="insp-title">${escapeHTML(gap.title)}</h3>
       <p class="insp-meta">${escapeHTML(gap.kind)}</p>
+
+      <div class="insp-card insp-algo-prov">
+        <div class="insp-card-head" style="color:#60a5fa">🔍 XUẤT XỨ & CƠ CHẾ PHÁT HIỆN</div>
+        <div>Lỗ hổng này được phát hiện tự động bởi <b>Thuật toán Quét Xung đột (Gap Engine)</b> dựa trên các cạnh Tương khắc (conflict) / Bác bỏ (refute) giữa các cặp bài báo trong phả hệ khi chưa có công trình nào thỏa mãn điều kiện còn thiếu.</div>
+      </div>
+
       <div class="insp-card insp-limit">
         <div class="insp-card-head" style="color:#f9a8d4">🔍 TẠI SAO TỒN TẠI LỖ HỔNG NÀY?</div>
         <div>${escapeHTML(gap.summary)}</div>

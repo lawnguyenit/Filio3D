@@ -82,6 +82,16 @@ export function renderEditorTab(switchViewFn) {
       // Dùng tông màu trầm, thanh lịch hơn thay vì dải màu neon chói mắt
       const accentBorder = isAttacker ? '#dc2626' : (ecoColor || '#475569');
 
+      const prov = p.provenance || { type: 'manual' };
+      let provChip = '';
+      if (prov.type === 'ai') {
+        provChip = `<span class="card-chip chip-prov chip-prov-ai" title="AI bóc tách: ${escapeHTML(prov.model || 'AI')}">🤖 AI</span>`;
+      } else if (prov.type === 'manual') {
+        provChip = `<span class="card-chip chip-prov chip-prov-manual" title="Tác giả tự nhập">✍ Tay</span>`;
+      } else {
+        provChip = `<span class="card-chip chip-prov chip-prov-system" title="Dữ liệu mẫu chuẩn">🏛 Gốc</span>`;
+      }
+
       return `
       <div class="paper-list-card ${p.id === currentEditingPaperId ? 'selected' : ''}"
            style="--card-accent:${accentBorder};"
@@ -91,6 +101,7 @@ export function renderEditorTab(switchViewFn) {
           <button type="button" class="card-quick-del-btn" data-quick-del-paper="${escapeHTML(p.id)}" title="Xóa bài báo này">✕</button>
         </div>
         <div class="paper-card-chips">
+          ${provChip}
           <span class="card-chip chip-year">${p.year}</span>
           <span class="card-chip chip-author">${escapeHTML(shortAuthor(p))}</span>
           <span class="card-chip chip-lineage" style="background:${ecoColor}">${escapeHTML(shortEcoName)}</span>
@@ -190,6 +201,9 @@ export function populatePaperEditorForm(paper) {
   $('#editPaperYear').value = paper?.year || new Date().getFullYear();
   $('#editPaperVenue').value = paper?.venue || '';
   $('#editPaperCore').value = paper?.coreKnowledge || '';
+  if ($('#editPaperMethodPipeline')) $('#editPaperMethodPipeline').value = paper?.methodPipeline || '';
+  if ($('#editPaperMaterials')) $('#editPaperMaterials').value = paper?.materials || '';
+  if ($('#editPaperEvidence')) $('#editPaperEvidence').value = paper?.evidence || '';
   $('#editPaperLimits').value = paper?.limitations || '';
 
   $('#editPaperEcosystem').innerHTML = state.ecosystems
@@ -325,6 +339,9 @@ export function initEditorEvents(switchViewFn) {
       }))
       .filter((s) => s.text);
 
+    const existingIdx = state.sources.findIndex((s) => s.id === id);
+    const existing = existingIdx !== -1 ? state.sources[existingIdx] : null;
+
     const record = {
       id,
       title,
@@ -334,12 +351,19 @@ export function initEditorEvents(switchViewFn) {
       ecosystemId: $('#editPaperEcosystem').value || state.ecosystems[0]?.id,
       problemId: $('#editPaperProblem').value || '',
       coreKnowledge: core,
+      methodPipeline: ($('#editPaperMethodPipeline')?.value || '').trim(),
       conditions,
+      materials: ($('#editPaperMaterials')?.value || '').trim(),
+      evidence: ($('#editPaperEvidence')?.value || '').trim(),
       limitations: $('#editPaperLimits').value.trim(),
+      provenance: existing?.provenance || {
+        type: 'manual',
+        author: 'Người dùng tự nhập',
+        timestamp: Date.now(),
+      },
       internalChain,
     };
 
-    const existingIdx = state.sources.findIndex((s) => s.id === id);
     if (existingIdx !== -1) state.sources[existingIdx] = record;
     else state.sources.unshift(record);
 
