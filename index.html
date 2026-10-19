@@ -609,16 +609,46 @@
                   </div>
                 </div>
 
-                <label class="field-label">2. Vấn đề cần tra cứu *</label>
-                <div class="form-grid-2">
-                  <input id="aiTopicInput" class="text-field" value="Weak Label (Học từ Nhãn yếu & Nhiễu)" placeholder="VD: Weak Label Learning, Graph RAG, Causal Inference..." />
-                  <select id="aiTargetEcosystem" class="text-field">
-                    <option value="new">✨ Tự tạo Phả hệ mới theo vấn đề tra cứu</option>
-                  </select>
+                <label class="field-label" style="margin-top:14px">2. Chọn Chế độ Tra cứu & Tái tổ hợp AI</label>
+                <div class="ai-mode-selector" role="tablist">
+                  <button type="button" class="ai-mode-btn active" data-ai-mode="decompose">
+                    💡 1. Phân rã Hiện tượng ➔ Tìm Bài báo & Kiểm chứng
+                  </button>
+                  <button type="button" class="ai-mode-btn" data-ai-mode="attack_defense">
+                    🛡️⚔️ 2. Đưa 1 Bài báo ➔ Tìm Đòn Tấn công & Phòng thủ
+                  </button>
                 </div>
 
-                <label class="field-label">3. Yêu cầu cụ thể (Tìm bài gốc, bài kế thừa, bài tấn công & khe hở)</label>
-                <textarea id="aiCustomInstruction" class="text-area" rows="3">Hãy tìm chuỗi bài báo phả hệ (từ bài gốc nền tảng -> các bài kế thừa -> các bài báo tấn công/bác bỏ chỉ ra điều kiện làm bài gốc bị sai) và chỉ ra khe hở nghiên cứu. Trích xuất rõ Điều kiện tồn tại và Điểm gãy của từng bài.</textarea>
+                <!-- CHẾ ĐỘ 1: PHÂN RÃ HIỆN TƯỢNG ĐẾN CÂU HỎI NGHIÊN CỨU -->
+                <div id="aiModeDecomposePanel" class="ai-mode-panel">
+                  <label class="field-label" style="margin-top:10px">Hiện tượng quan sát / Luận điểm nghiên cứu *</label>
+                  <input id="aiTopicInput" class="text-field" value="LLM Hallucination trong tổng hợp mã nguồn thư viện ít phổ biến" placeholder="VD: LLM bị hallucination ở API hiếm, Weak Label Learning bị suy thoái khi nhãn tương quan..." />
+
+                  <label class="field-label">Chuỗi phân rã suy luận & Giả thuyết giải pháp của bạn</label>
+                  <textarea id="aiDecomposeChainInput" class="text-area" rows="3" placeholder="Nhập các bước phân rã suy luận của bạn...">1. Hiện tượng: LLM thường xuyên hallucinate cú pháp ở các thư viện lập trình hiếm
+2. Phân rã nguyên nhân: Dữ liệu tiền huấn luyện thưa thớt và thiếu ngữ cảnh ràng buộc kiểu dữ liệu
+3. Giả thuyết giải pháp: Bổ sung biểu đồ cú pháp trừu tượng (AST-RAG) vào prompt để khóa ngữ nghĩa
+4. Câu hỏi nghiên cứu: Mô hình AST-RAG có chứng minh được giảm tỷ lệ gãy mã nguồn mà không làm suy giảm thời gian phản hồi không?</textarea>
+
+                  <div style="margin-top:8px">
+                    <label class="field-label">Phả hệ 3D đích</label>
+                    <select id="aiTargetEcosystem" class="text-field">
+                      <option value="new">✨ Tự tạo Phả hệ mới theo vấn đề tra cứu</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- CHẾ ĐỘ 2: ĐƯA 1 BÀI BÁO CỤ THỂ ➔ TÌM ĐÒN TẤN CÔNG & PHÒNG THỦ -->
+                <div id="aiModeAttackDefensePanel" class="ai-mode-panel" hidden>
+                  <label class="field-label" style="margin-top:10px">Bài báo mục tiêu (Target Paper) *</label>
+                  <input id="aiTargetPaperInput" class="text-field" value="Snorkel: Rapid Training Data Creation with Weak Supervision (Ratner et al., 2017)" placeholder="VD: Tên bài báo, Tác giả, Năm xuất bản..." />
+
+                  <label class="field-label">Tri thức / Đóng góp chính của bài báo này</label>
+                  <textarea id="aiTargetCoreInput" class="text-area" rows="2" placeholder="Bài báo này tuyên bố giải quyết được điều gì?">Sử dụng mô hình sinh (Generative Model) để ước lượng trọng số tin cậy của các hàm gán nhãn Heuristic độc lập mà không cần Ground Truth.</textarea>
+
+                  <label class="field-label">Yêu cầu tìm kiếm phản biện & phả hệ</label>
+                  <textarea id="aiAttackInstruction" class="text-area" rows="3" placeholder="Yêu cầu AI tìm các bài báo củng cố và các bài báo tấn công...">Tìm các bài báo củng cố/kế thừa (Defense) và các bài báo TẤN CÔNG/BÁC BỎ (Attacker/Refutation) chỉ ra điều kiện biên làm bài báo này bị sai (ví dụ: khi các hàm gán nhãn có tương quan ẩn phức tạp hoặc dữ liệu bị covariate shift). Chỉ ra khe hở nghiên cứu chưa ai giải quyết.</textarea>
+                </div>
 
                 <div class="ai-action-buttons">
                   <button class="primary-button" id="btnExecuteAiQuery">

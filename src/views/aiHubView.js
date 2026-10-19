@@ -15,9 +15,10 @@ import {
 } from '../store/workspaceStore.js';
 import { sceneState, buildSceneGraph, fitCameraToVisibleScene } from '../engine/spatial3DEngine.js';
 import { renderSidebarLineages, renderFloatingInspector } from './inspectorView.js';
-import { $, escapeHTML, notify } from '../utils/dom.js';
+import { $, $$, escapeHTML, notify } from '../utils/dom.js';
 
 let selectedAiProvider = 'gemini-api';
+let selectedAiMode = 'decompose'; // 'decompose' | 'attack_defense'
 let stagedGraphData = null;
 
 export function renderAiHubTab() {
@@ -64,44 +65,233 @@ function syncProviderUiState() {
 }
 
 export function buildAiResearchPrompt() {
-  const topic = ($('#aiTopicInput')?.value || '').trim() || 'Weak Label Learning';
-  const extra = ($('#aiCustomInstruction')?.value || '').trim();
+  const mode = selectedAiMode;
+  const provider = selectedAiProvider;
+
+  // =========================================================================
+  // CHẾ ĐỘ 1: PHÂN RÃ HIỆN TƯỢNG ĐẾN CÂU HỎI NGHIÊN CỨU
+  // =========================================================================
+  if (mode === 'decompose') {
+    const phenomenon = ($('#aiTopicInput')?.value || '').trim() || 'Hiện tượng nghiên cứu';
+    const chain = ($('#aiDecomposeChainInput')?.value || '').trim() || 'Chuỗi phân rã suy luận';
+
+    // 1.1 Tối ưu cho Anthropic Claude (XML Tags + Phản biện Logic Sâu)
+    if (provider === 'claude-api') {
+      return [
+        `<system_role>`,
+        `Bạn là một nhà khoa học nghiên cứu cấp cao (Senior Research Epistemologist) và chuyên gia phân tích Phả hệ Khoa học cho hệ thống đồ thị tri thức Filio3D.`,
+        `Nhiệm vụ: Đối chiếu chuỗi phân rã hiện tượng của người dùng với văn hiến học thuật thực tế (NeurIPS, ICML, ICLR, ACL, KDD, Nature, IEEE), tìm các bài báo chứng minh hoặc phản biện từng mắt xích, và chỉ ra Khe hở nghiên cứu (Research Gap).`,
+        `</system_role>`,
+        ``,
+        `<research_decomposition>`,
+        `<phenomenon_and_topic>${phenomenon}</phenomenon_and_topic>`,
+        `<reasoning_chain>`,
+        chain,
+        `</reasoning_chain>`,
+        `</research_decomposition>`,
+        ``,
+        `<epistemic_instructions>`,
+        `1. Tìm 3-4 bài báo khoa học thực tế (Peer-reviewed) tương ứng với từng bước trong chuỗi phân rã:`,
+        `   - Bài báo gốc đặt nền móng cho hiện tượng hoặc giả thuyết (Foundation).`,
+        `   - Bài báo phát triển / củng cố phương pháp giải pháp (Defense / Extension).`,
+        `   - Bài báo TẤN CÔNG / BÁC BỎ (Attacker / Refutation) chỉ ra điều kiện giả thuyết bị sai lầm hoặc sụp đổ (Break-point).`,
+        `2. Bóc tách nghiêm ngặt:`,
+        `   - Điều kiện bắt buộc để bài báo đúng (Conditions: data, environment, method).`,
+        `   - Điểm gãy / Khi nào bài báo sụp đổ (Limitations).`,
+        `3. Xác định mũi tên liên kết 3D: refute (đỏ), conflict (cam), lineage (tím), support (xanh).`,
+        `4. Chỉ ra ít nhất 1 Khe hở nghiên cứu (Research Gap ◇) chưa được giải quyết giữa các bài báo.`,
+        `</epistemic_instructions>`,
+        ``,
+        `<output_format>`,
+        `Trả về DUY NHẤT một khối JSON hợp lệ theo cấu trúc sau:`,
+        `\`\`\`json`,
+        `{`,
+        `  "lineageTitle": "Phả hệ: ${phenomenon}",`,
+        `  "papers": [`,
+        `    {`,
+        `      "tempId": "p1",`,
+        `      "title": "Tên bài báo khoa học chính xác",`,
+        `      "authors": "Tác giả et al.",`,
+        `      "year": 2022,`,
+        `      "venue": "NeurIPS/ICML/ICLR/ACL",`,
+        `      "coreKnowledge": "Đóng góp và tri thức cốt lõi (1-2 câu ngắn gọn)",`,
+        `      "conditions": [`,
+        `        { "category": "method", "factor": "Giả định", "value": "Điều kiện cụ thể để bài báo đúng" }`,
+        `      ],`,
+        `      "limitations": "Điểm gãy: Khi nào bài báo này thất bại?"`,
+        `    }`,
+        `  ],`,
+        `  "relations": [`,
+        `    { "from": "p2", "to": "p1", "type": "refute", "label": "Tấn công / Chỉ ra điểm gãy của p1" },`,
+        `    { "from": "p1", "to": "p3", "type": "lineage", "label": "Kế thừa và mở rộng p1" }`,
+        `  ]`,
+        `}`,
+        `\`\`\``,
+        `</output_format>`,
+      ].join('\n');
+    }
+
+    // 1.2 Tối ưu cho Google Gemini (Grounded Literature + Direct Fact Extraction)
+    if (provider === 'gemini-api') {
+      return [
+        `Bạn là chuyên gia phân tích Phả hệ Nghiên cứu Khoa học của hệ thống Filio3D.`,
+        `Hãy đối chiếu các luận điểm nghiên cứu và chuỗi phân rã suy luận sau đây với văn hiến học thuật thực tế:`,
+        ``,
+        `HIỆN TƯỢNG / VẤN ĐỀ: "${phenomenon}"`,
+        `CHUỖI PHÂN RÃ SUY LUẬN & GIẢ THUYẾT:`,
+        chain,
+        ``,
+        `YÊU CẦU TRÍCH XUẤT HỌC THUẬT:`,
+        `1. Tìm 3-4 bài báo khoa học thực tế (có tác giả, năm, hội nghị uy tín) khớp với các mắt xích suy luận trên.`,
+        `2. Xác định các bài báo Kế thừa (Lineage), bài báo TẤN CÔNG / BÁC BỎ (Refutation) chỉ ra điều kiện giả thuyết bị sai.`,
+        `3. Trích xuất chính xác:`,
+        `   - Điều kiện bắt buộc để bài báo đúng (Conditions: data, environment, method).`,
+        `   - Điểm gãy (Limitations): điều kiện làm sụp đổ bài báo.`,
+        `4. Chỉ ra Khe hở nghiên cứu (Research Gap ◇) còn bỏ ngỏ.`,
+        ``,
+        `ĐỊNH DẠNG JSON TRẢ VỀ:`,
+        `\`\`\`json`,
+        `{`,
+        `  "lineageTitle": "Phả hệ: ${phenomenon}",`,
+        `  "papers": [`,
+        `    {`,
+        `      "tempId": "p1",`,
+        `      "title": "Tên bài báo",`,
+        `      "authors": "Tác giả et al.",`,
+        `      "year": 2022,`,
+        `      "venue": "Hội nghị/Nguồn",`,
+        `      "coreKnowledge": "Tri thức cốt lõi",`,
+        `      "conditions": [{ "category": "data", "factor": "Yếu tố", "value": "Điều kiện" }],`,
+        `      "limitations": "Điểm gãy"`,
+        `    }`,
+        `  ],`,
+        `  "relations": [`,
+        `    { "from": "p2", "to": "p1", "type": "refute", "label": "Mối quan hệ" }`,
+        `  ]`,
+        `}`,
+        `\`\`\``,
+      ].join('\n');
+    }
+
+    // 1.3 Tối ưu cho OpenAI GPT (Developer Role + Structured Chain-of-Thought)
+    return [
+      `[Role: Senior AI Research Epistemologist for Filio3D Graph]`,
+      `[Task: Ground user phenomenon decomposition into real scientific literature]`,
+      ``,
+      `User Phenomenon: "${phenomenon}"`,
+      `Decomposition Reasoning Chain:`,
+      chain,
+      ``,
+      `Instructions:`,
+      `1. Find 3-4 real peer-reviewed scientific papers addressing this reasoning chain (foundation, attacks, and defense).`,
+      `2. Identify points of refutation: Where does the assumption break?`,
+      `3. Extract strict existence conditions and failure breakpoints.`,
+      `4. Output strictly valid JSON matching this schema:`,
+      `\`\`\`json`,
+      `{`,
+      `  "lineageTitle": "Phả hệ: ${phenomenon}",`,
+      `  "papers": [`,
+      `    { "tempId": "p1", "title": "Tên bài", "authors": "Tác giả", "year": 2023, "venue": "NeurIPS", "coreKnowledge": "...", "conditions": [{"category":"method","factor":"...","value":"..."}], "limitations": "..." }`,
+      `  ],`,
+      `  "relations": [`,
+      `    { "from": "p2", "to": "p1", "type": "refute", "label": "Tấn công/Bác bỏ" }`,
+      `  ]`,
+      `}`,
+      `\`\`\``,
+    ].join('\n');
+  }
+
+  // =========================================================================
+  // CHẾ ĐỘ 2: ĐƯA 1 BÀI BÁO CỤ THỂ ➔ TÌM ĐÒN TẤN CÔNG & PHÒNG THỦ
+  // =========================================================================
+  const targetPaper = ($('#aiTargetPaperInput')?.value || '').trim() || 'Bài báo mục tiêu';
+  const targetCore = ($('#aiTargetCoreInput')?.value || '').trim() || 'Đóng góp chính';
+  const attackReq = ($('#aiAttackInstruction')?.value || '').trim();
+
+  // 2.1 Tối ưu cho Claude
+  if (provider === 'claude-api') {
+    return [
+      `<system_role>`,
+      `Bạn là chuyên gia Phản biện Học thuật (Peer-Review Critic & Epistemic Defense/Attack Analyst) cho hệ thống Filio3D.`,
+      `Nhiệm vụ: Phân tích 1 bài báo mục tiêu, tìm các công trình kế thừa bảo vệ (Defense/Foundation) và các công trình TẤN CÔNG / BÁC BỎ / PHỦ ĐỊNH (Attacker/Refutation) cùng các điều kiện biên sụp đổ.`,
+      `</system_role>`,
+      ``,
+      `<target_paper>`,
+      `<title_and_citation>${targetPaper}</title_and_citation>`,
+      `<core_claim>${targetCore}</core_claim>`,
+      `<inquiry_directive>${attackReq}</inquiry_directive>`,
+      `</target_paper>`,
+      ``,
+      `<dialectical_mapping_requirements>`,
+      `1. Bao gồm chính bài báo mục tiêu (tempId: "p1") với điều kiện biên và điểm gãy của nó.`,
+      `2. Tìm 2-3 bài báo khoa học thực tế xuất bản sau bài gốc:`,
+      `   - Ít nhất 1 bài báo kế thừa / củng cố (Defense/Extension -> mũi tên lineage/support).`,
+      `   - Ít nhất 1-2 bài báo TẤN CÔNG TRỰC DIỆN (Attacker/Refutation -> mũi tên refute): bài báo này phải chỉ ra điều kiện cụ thể mà tại đó phương pháp của p1 bị vô hiệu hóa hoặc sụp đổ!`,
+      `3. Chỉ ra khe hở nghiên cứu (Research Gap) còn tồn tại giữa bài gốc và các bài tấn công.`,
+      `</dialectical_mapping_requirements>`,
+      ``,
+      `<output_format>`,
+      `\`\`\`json`,
+      `{`,
+      `  "lineageTitle": "Phả hệ Tấn công & Phòng thủ: ${targetPaper.slice(0, 40)}",`,
+      `  "papers": [`,
+      `    {`,
+      `      "tempId": "p1",`,
+      `      "title": "${targetPaper}",`,
+      `      "authors": "Tác giả bài gốc",`,
+      `      "year": 2017,`,
+      `      "venue": "Nguồn gốc",`,
+      `      "coreKnowledge": "${targetCore}",`,
+      `      "conditions": [{ "category": "method", "factor": "Giả định", "value": "Điều kiện cần để bài này đúng" }],`,
+      `      "limitations": "Điểm gãy khi bị tấn công"`,
+      `    },`,
+      `    {`,
+      `      "tempId": "p2",`,
+      `      "title": "Tên bài báo Tấn công / Bác bỏ p1",`,
+      `      "authors": "Tác giả tấn công",`,
+      `      "year": 2020,`,
+      `      "venue": "Hội nghị",`,
+      `      "coreKnowledge": "Chỉ ra p1 sai lầm khi vi phạm điều kiện X",`,
+      `      "conditions": [{ "category": "environment", "factor": "Miền kiểm thử", "value": "Điều kiện gây sụp đổ" }],`,
+      `      "limitations": "Hạn chế của bài tấn công"`,
+      `    }`,
+      `  ],`,
+      `  "relations": [`,
+      `    { "from": "p2", "to": "p1", "type": "refute", "label": "TẤN CÔNG: Bác bỏ p1 dưới điều kiện tương quan phức tạp" }`,
+      `  ]`,
+      `}`,
+      `\`\`\``,
+      `</output_format>`,
+    ].join('\n');
+  }
+
+  // 2.2 Tối ưu cho Gemini & GPT
   return [
-    `Bạn là chuyên gia phân tích Phả hệ Nghiên cứu Khoa học cho hệ thống đồ thị Folio 3D.`,
-    `Vấn đề cần tra cứu: "${topic}"`,
-    `Yêu cầu: ${extra}`,
+    `Bạn là chuyên gia phân tích Đòn Tấn công & Phòng thủ Học thuật của Filio3D.`,
+    `Bài báo mục tiêu: "${targetPaper}"`,
+    `Đóng góp cốt lõi: "${targetCore}"`,
+    `Yêu cầu: ${attackReq}`,
     ``,
-    `Hãy trả về kết quả theo định dạng JSON chuẩn bên dưới (hoặc văn bản có cấu trúc tương đương để Bộ Trung Gian của Folio 3D nạp thẳng vào không gian 3D):`,
+    `Hãy tìm các bài báo thực tế trong văn hiến đã kế thừa (Defense) và các bài báo TẤN CÔNG / BÁC BỎ (Attacker / Refutation) bài báo này.`,
+    `Bóc tách rõ Điều kiện tồn tại và Điểm gãy của từng bài báo.`,
+    `Trả về khối JSON chuẩn:`,
     `\`\`\`json`,
     `{`,
-    `  "lineageTitle": "Phả hệ: ${topic}",`,
+    `  "lineageTitle": "Phả hệ Tấn công & Phòng thủ: ${targetPaper.slice(0, 40)}",`,
     `  "papers": [`,
     `    {`,
     `      "tempId": "p1",`,
-    `      "title": "Tên bài báo gốc (Foundation Paper)",`,
-    `      "authors": "Tác giả et al.",`,
-    `      "year": 2019,`,
-    `      "venue": "NeurIPS/ICML/ACL",`,
-    `      "coreKnowledge": "Đóng góp và tri thức cốt lõi (ngắn gọn 1-2 câu)",`,
-    `      "conditions": [`,
-    `        { "category": "method", "factor": "Giả định cốt lõi", "value": "Điều kiện cụ thể để bài báo này đúng" }`,
-    `      ],`,
-    `      "limitations": "Điểm gãy: Khi nào bài báo này bị sai hoặc thất bại?"`,
+    `      "title": "${targetPaper}",`,
+    `      "authors": "Tác giả",`,
+    `      "year": 2017,`,
+    `      "venue": "Venue",`,
+    `      "coreKnowledge": "${targetCore}",`,
+    `      "conditions": [{ "category": "method", "factor": "Giả định", "value": "Điều kiện" }],`,
+    `      "limitations": "Điểm gãy"`,
     `    }`,
     `  ],`,
     `  "relations": [`,
-    `    {`,
-    `      "from": "p2",`,
-    `      "to": "p1",`,
-    `      "type": "refute",`,
-    `      "label": "TẤN CÔNG / BÁC BỎ: Chỉ ra p1 sai khi điều kiện X bị vi phạm"`,
-    `    },`,
-    `    {`,
-    `      "from": "p1",`,
-    `      "to": "p3",`,
-    `      "type": "lineage",`,
-    `      "label": "Kế thừa và mở rộng p1"`,
-    `    }`,
+    `    { "from": "p2", "to": "p1", "type": "refute", "label": "Tấn công / Bác bỏ p1" }`,
     `  ]`,
     `}`,
     `\`\`\``,
@@ -348,6 +538,17 @@ async function callCloudLlmWithUserKey({ provider, apiKey, model, prompt }) {
 }
 
 export function initAiHubEvents(switchViewFn) {
+  $$('.ai-mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectedAiMode = btn.dataset.aiMode;
+      $$('.ai-mode-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      const decompPanel = $('#aiModeDecomposePanel');
+      const attackPanel = $('#aiModeAttackDefensePanel');
+      if (decompPanel) decompPanel.hidden = selectedAiMode !== 'decompose';
+      if (attackPanel) attackPanel.hidden = selectedAiMode !== 'attack_defense';
+    });
+  });
+
   $('#aiProviderDropdown')?.addEventListener('change', () => {
     syncProviderUiState();
   });
