@@ -2,9 +2,6 @@ name = "filio3d"
 compatibility_date = "2025-01-01"
 pages_build_output_dir = "."
 
-[assets]
-directory = "."
-
 # Hướng dẫn gắn Cloudflare KV miễn phí (100.000 lượt đọc/ngày, 5GB lưu trữ):
 # Khi tạo KV Namespace trên Cloudflare Dashboard, bỏ dấu '#' ở 3 dòng dưới và điền ID của bạn vào:
 # [[kv_namespaces]]
