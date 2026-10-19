@@ -1,0 +1,14 @@
+{
+  "name": "filio3d",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Filio3D - 3D Research Ecosystem & AI Synthesis",
+  "scripts": {
+    "start": "node server.js",
+    "deploy": "wrangler pages deploy .",
+    "build": "echo 'No build step required for static assets'"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.1"
+  }
+}
