@@ -1,6 +1,6 @@
-# 📐 Tài liệu Kiến trúc & Bản đồ Mã nguồn `Filio3D`
+# 📐 Tài liệu Kiến trúc & Bản đồ Kỹ thuật `Filio3D`
 
-Tài liệu này giúp bạn định vị tức thì bất kỳ tính năng nào trong dự án mà không bị lạc hướng. Toàn bộ mã nguồn trước đây nằm trong 1 file đơn lẻ (`app.js`) đã được **tách bạch thành kiến trúc ES Modules chuẩn (`src/`)** và **Cloudflare Pages Functions (`functions/api/`)**.
+Tài liệu này cung cấp bản đồ kỹ thuật chi tiết nhất về cấu trúc mã nguồn, các lược đồ dữ liệu (Data Schemas), vòng đời dữ liệu (Data Lifecycle), và phân hệ chức năng trong hệ thống **Filio3D**.
 
 ---
 
@@ -8,122 +8,258 @@ Tài liệu này giúp bạn định vị tức thì bất kỳ tính năng nào
 
 ```text
 Filio3D/
-├── index.html                  # Giao diện khung 100vh: Cổng Khóa Truy Cập + 4 Tab chính
-├── styles.css                  # Toàn bộ hệ thống CSS, biến màu sắc, phân tầng thẻ & 3D HUD
-├── wrangler.toml               # Cấu hình triển khai miễn phí lên Cloudflare Pages + KV
-├── server.js                   # Server chạy thử nghiệm cục bộ (Node.js)
+├── index.html                  # Giao diện khung 100vh: Cổng Access Gate + 4 View chính
+├── styles.css                  # Toàn bộ hệ thống CSS Tokens: Màu 7 Trụ Cột, Card Styles, 3D HUD
+├── wrangler.toml               # Cấu hình Cloudflare Worker + Static Assets + KV Namespace (FILIO_KV)
+├── worker.js                   # Entrypoint Worker điều phối Static Assets & API Routing
+├── server.js                   # Node.js local dev server
 ├── docs/
-│   └── ARCHITECTURE.md         # [Tài liệu này] Bản đồ chi tiết từng file và hàm chức năng
-├── src/                        # 🎯 MÃ NGUỒN FRONTEND ĐÃ TÁCH MODULE
-│   ├── main.js                 # Điểm khởi chạy trung tâm, điều phối đăng nhập & chuyển Tab
+│   └── ARCHITECTURE.md         # [Tài liệu này] Bản đồ kỹ thuật chi tiết
+├── src/                        # 🎯 MÃ NGUỒN FRONTEND MODULAR ES6
+│   ├── main.js                 # Điểm khởi chạy trung tâm, điều phối switchView & auth
 │   ├── config/
-│   │   └── constants.js        # Hằng số mũi tên 3D, danh mục điều kiện, cấu hình Cloud LLM
+│   │   └── constants.js        # Hằng số ARROW_TYPES, CONDITION_CATEGORIES, CLOUD_LLM_PROVIDERS
 │   ├── utils/
-│   │   └── dom.js              # Hàm tiện ích DOM ($, $$), thông báo Toast, escapeHTML
+│   │   └── dom.js              # Tiện ích DOM ($, $$), thông báo Toast, shortAuthor, escapeHTML
 │   ├── data/
-│   │   └── defaultState.js     # Bộ dữ liệu mẫu mặc định (3 Phả hệ: Weak Label, RAG, AI Synthesis)
+│   │   └── defaultState.js     # Bộ dữ liệu 3 Phả hệ mẫu chuẩn hóa 7 Trụ Cột Tri Thức
 │   ├── auth/
-│   │   └── accessGate.js       # Cổng Khóa Truy Cập & Trình tạo Mã có thời hạn (HMAC-SHA256)
+│   │   └── accessGate.js       # Cổng Khóa Truy Cập & Trình tạo Mã HMAC-SHA256 có thời hạn
 │   ├── store/
-│   │   └── workspaceStore.js   # Lưu trữ Đồ thị 3D tách biệt theo từng người dùng (Local + Cloud KV)
+│   │   └── workspaceStore.js   # Multi-user isolation (filio3d-v4-workspace::<userId> + Cloud KV)
 │   ├── engine/
-│   │   ├── gapEngine.js        # Thuật toán tìm Khe hở nghiên cứu (◇) & tạo câu hỏi mới
-│   │   └── spatial3DEngine.js  # Bộ máy Không gian 3D Đa tầng (X-Y-Z), lực đẩy & Camera 360°
+│   │   ├── gapEngine.js        # Thuật toán quét cạnh refute/conflict phát hiện Khe hở nghiên cứu (◇)
+│   │   └── spatial3DEngine.js  # Không gian 3D Đa tầng (X-Y-Z), lực đẩy chống đè chữ & Camera 360°
 │   └── views/
-│       ├── inspectorView.js    # Ngăn Chi tiết Nút 3D bên phải, Sidebar Phả hệ & Popover Câu hỏi
-│       ├── editorView.js       # Tab 2: Danh sách thẻ màu gọn + 4 Sub-tabs sửa bài báo
-│       ├── aiHubView.js        # Tab 3: Gọi AI bằng API Key cá nhân (BYOK) + Bộ Trung Gian
-│       └── matrixView.js       # Tab 4: Bản đồ Thẻ Phân Tầng Điều Kiện & Khe Hở
-└── functions/                  # ☁️ BACKEND TRÊN CLOUDFLARE PAGES FUNCTIONS (MIỄN PHÍ)
-    └── api/
-        ├── auth.js             # API /api/auth: Xác thực chữ ký số HMAC-SHA256 & hạn sử dụng mã
-        ├── workspace.js        # API /api/workspace: Lưu đồ thị riêng của từng userId trên Cloudflare KV
-        └── ai-proxy.js         # API /api/ai-proxy: Proxy gọi Claude API bằng Key cá nhân của người dùng
+│       ├── inspectorView.js    # Ngăn chi tiết 3D Floating Inspector (7 Trụ Cột, Provenance, Lineage Resolution)
+│       ├── editorView.js       # Tab 2: Quản lý thẻ bài báo rút gọn, chip Provenance & 4 Sub-tabs biên soạn
+│       ├── aiHubView.js        # Tab 3: Two-Stage Meta-Prompting (Pha 1 & 2) + Bộ Trung Gian Chuẩn Hóa
+│       └── matrixView.js       # Tab 4: Ma trận điều kiện phân tầng, phân trang, lọc & tìm kiếm
+└── functions/api/               # ☁️ CLOUDFLARE SERVERLESS FUNCTIONS
+    ├── auth.js                 # Xác thực chữ ký số HMAC-SHA256 & kiểm tra hạn sử dụng
+    ├── workspace.js            # Đồng bộ đồ thị theo từng userId trên Cloudflare KV
+    └── ai-proxy.js             # Proxy gọi Claude API bằng API Key cá nhân
 ```
 
 ---
 
-## 2. Chi tiết Chức năng Từng File (Khi cần Debug / Nâng cấp thì mở file nào?)
+## 2. Lược đồ Dữ liệu Chuẩn (Data Schemas)
 
-### 🔐 A. Phân hệ Đăng nhập & Cấp Mã Có Thời Hạn (`src/auth/accessGate.js` & `functions/api/auth.js`)
-- **Nhiệm vụ**:
-  - Chặn tuyệt đối 100% người dùng không có mã truy cập (`#accessGateOverlay`).
-  - Tạo và kiểm tra chữ ký số `HMAC-SHA256` trên từng mã truy cập theo định dạng:
-    `F3D.<userId>.<YYYY-MM-DD|PERMANENT>.<admin|member>.<CHỮ_KÝ_12_KÝ_TỰ>`
-- **Các hàm chính trong [`src/auth/accessGate.js`](../src/auth/accessGate.js)**:
-  - `generateSignedAccessKey({ userId, expiryDateStr, role })`: Sinh mã bảo mật có ngày hết hạn để bạn gửi cho Thầy hướng dẫn hoặc đồng nghiệp.
-  - `verifyAccessKey(rawToken)`: Kiểm tra chữ ký chống giả mạo và kiểm tra xem ngày hiện tại đã vượt quá `expiryDateStr` hay chưa.
-  - `enforceAccessGate(onAuthenticated)`: Khóa màn hình cho tới khi nhập đúng mã hợp lệ.
-- **Mật khẩu Chủ sở hữu mặc định (Master Secret)**:
-  - `FILIO3D-ADMIN-2026` (Khi triển khai lên Cloudflare, bạn có thể đổi qua biến môi trường `MASTER_ADMIN_SECRET`).
+### A. Lược đồ Bài Báo Khoa học 7 Trụ Cột (`PaperNode`)
+Mỗi bài báo trong mảng `state.sources` được chuẩn hóa theo cấu trúc sau:
+
+```typescript
+interface PaperNode {
+  // Định danh & Siêu dữ liệu cơ bản
+  id: string;                      // ID duy nhất, ví dụ: 'wl-1', 'p-ai-abc-1'
+  title: string;                   // Tiêu đề bài báo khoa học chính xác
+  authors: string;                 // Danh sách tác giả (ví dụ: 'A. Ratner et al.')
+  year: number;                    // Năm xuất bản (ví dụ: 2017)
+  venue: string;                   // Hội nghị / Tạp chí uy tín (NeurIPS, ICML, ICLR, ACL, Nature)
+  url?: string;                    // Đường dẫn tới bài báo gốc (arXiv, DOI)
+  ecosystemId: string;             // ID Phả hệ trực thuộc (ví dụ: 'eco-weak-label')
+  problemId?: string;              // ID Vấn đề chung đang giải quyết (ví dụ: 'prob-weak-noise')
+
+  // Định danh Xuất xứ & Nguồn gốc Tri thức (Knowledge Provenance)
+  provenance: {
+    type: 'ai' | 'manual' | 'algo' | 'system';
+    origin?: string;               // Mô tả xuất xứ ngắn
+    model?: string;                // Model thực thi (ví dụ: 'gemini-3.8-flash', 'claude-3-7-sonnet')
+    provider?: string;             // Nhà cung cấp API ('gemini-api', 'openai-api', 'claude-api')
+    mode?: string;                 // Mode bóc tách ('decompose' | 'attack_defense')
+    timestamp: number;             // Thời điểm tạo (Unix timestamp)
+  };
+
+  // 7 TRỤ CỘT TRI THỨC KHOA HỌC (THE 7-PILLAR TAXONOMY)
+  coreKnowledge: string;           // Trụ cột 1: Đóng góp & Tuyên bố cốt lõi
+  methodPipeline: string;          // Trụ cột 2: Quy trình xây dựng giải pháp / Phương pháp luận
+  conditions: Array<{              // Trụ cột 3: Điều kiện bắt buộc tồn tại để bài báo đúng
+    category: 'method' | 'data' | 'environment' | 'metric';
+    factor: string;                // Tên yếu tố (ví dụ: 'Giả định độc lập', 'Tỷ lệ mất cân bằng')
+    value: string;                 // Giá trị ràng buộc cụ thể
+  }>;
+  materials: string;               // Trụ cột 4: Nguyên liệu, Benchmark, Quy mô tham số & Phần cứng
+  evidence: string;                // Trụ cột 5: Bằng chứng thực nghiệm & Kết quả đo lường (F1, Accuracy)
+  limitations: string;             // Trụ cột 6: Điểm gãy suy luận & Giới hạn sụp đổ khi bị tấn công
+
+  // Trụ cột 7 (Vị trí Phả hệ) được tính toán động qua mảng state.relations
+
+  // Chuỗi suy luận nội tại (Internal Chain)
+  internalChain?: Array<{
+    stage: string;                 // 'Vấn đề' | 'Điều kiện' | 'Phương pháp' | 'Kết luận'
+    text: string;
+  }>;
+}
+```
+
+### B. Lược đồ Mũi tên Biện chứng 3D (`RelationEdge`)
+Mỗi liên kết trong mảng `state.relations`:
+
+```typescript
+interface RelationEdge {
+  id: string;                      // ID duy nhất: 'rel-wl-1'
+  from: string;                    // ID bài báo nguồn
+  to: string;                      // ID bài báo đích
+  type: 'lineage' | 'refute' | 'support' | 'conflict';
+  label: string;                   // Mô tả quan hệ học thuật
+  conditionNote?: string;          // Ghi chú về điều kiện biên gây ra mối quan hệ này
+}
+```
+
+### C. Lược đồ Khe hở Nghiên cứu (`ResearchGapNode`)
+Do thuật toán `src/engine/gapEngine.js` quét và tạo ra:
+
+```typescript
+interface ResearchGapNode {
+  id: string;                      // 'gap-refute-p1-p2'
+  kind: string;                    // 'KHE HỞ ĐIỀU KIỆN BIÊN KHI BỊ BÁC BỎ'
+  title: string;                   // Tiêu đề khe hở
+  summary: string;                 // Lý do tại sao tồn tại lỗ hổng này giữa 2 bài báo
+  missingCondition: string;        // Điều kiện chưa ai giải quyết được
+  suggestedQuestion: string;       // Câu hỏi nghiên cứu đề xuất giải quyết khe hở
+  paperAId: string;
+  paperBId: string;
+  ecosystemId: string;
+}
+```
 
 ---
 
-### 💾 B. Phân hệ Lưu trữ Tách biệt theo Người dùng (`src/store/workspaceStore.js` & `functions/api/workspace.js`)
-- **Nhiệm vụ**:
-  - Đảm bảo **"Của người nào thì chỉ hiển thị của người đó"**.
-  - Mỗi `userId` trên mã đăng nhập được cấp một phân vùng lưu trữ riêng biệt:
-    - Trên trình duyệt: `filio3d-v4-workspace::<userId>`
-    - Trên đám mây Cloudflare KV: `workspace::<userId>`
-  - Lưu trữ tách biệt cả **API Key cá nhân (BYOK)** của từng người dùng (`getUserPersonalApiKey`, `saveUserPersonalApiKey`).
-- **Các hàm chính trong [`src/store/workspaceStore.js`](../src/store/workspaceStore.js)**:
-  - `initWorkspaceForUser(session)`: Tải đồ thị 3D riêng của người vừa đăng nhập.
-  - `saveState()`: Lưu tức thì vào trình duyệt và đồng bộ ngầm lên Cloudflare KV (`/api/workspace`).
-  - `exportWorkspaceJson()`: Xuất file `.json` mang tên người dùng để sao lưu lên Google Drive.
+## 3. Vòng đời Dữ liệu Toàn diện (End-to-End Data Lifecycle)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Nhà nghiên cứu
+    participant Gate as Access Gate (HMAC)
+    participant Store as Workspace Store (KV)
+    participant Hub as AI Hub (Pha 1 & 2)
+    participant CloudLLM as Cloud LLM (BYOK)
+    participant Formatter as Bộ Trung Gian
+    participant Engine as 3D Spatial Engine
+    participant Inspector as Floating Inspector
+
+    User->>Gate: Nhập mã đăng nhập F3D.<userId>.<expiry>.<role>.<sig>
+    Gate->>Store: Xác thực thành công -> initWorkspaceForUser(userId)
+    Store-->>User: Tải đồ thị riêng của userId từ LocalStorage / Cloudflare KV
+    
+    User->>Hub: Nhập Hiện tượng thô + bấm "✨ AI Tinh Chế Prompt (Pha 1)"
+    Hub->>CloudLLM: Gọi vai trò Epistemic Prompt Architect
+    CloudLLM-->>Hub: Trả về Super Prompt chuẩn hóa cho model
+    Hub->>User: Hiển thị Super Prompt tại #aiRefinedPromptBox
+
+    User->>Hub: Bấm "🚀 Khai Thác Đồ Thị (Pha 2)"
+    Hub->>CloudLLM: Thực thi Super Prompt bằng Key cá nhân
+    CloudLLM-->>Formatter: Trả về JSON / Markdown bóc tách
+    Formatter->>Formatter: Gán nhãn Provenance + Trích xuất 7 Trụ Cột Tri Thức
+    Formatter-->>User: Hiển thị Thẻ Staging Preview
+
+    User->>Formatter: Bấm "⚡ Nạp thẳng vào Không gian 3D"
+    Formatter->>Store: Cập nhật state.sources & state.relations
+    Store->>Engine: buildSceneGraph() + relaxNodePositions3D()
+    Engine-->>User: Hiển thị đồ thị 3D đa tầng (Tấn công ở đỉnh, Kế thừa ở giữa, Khe hở ở đáy)
+    
+    User->>Engine: Click chọn một Nút bài báo trên 3D
+    Engine->>Inspector: renderFloatingInspector(activeNodeId)
+    Inspector->>Inspector: Phân tích Lineage Gap Resolution (Kiểm tra bài con đã cứu chưa)
+    Inspector-->>User: Hiển thị 7 Trụ Cột, Provenance badge & Cảnh báo phả hệ
+```
 
 ---
 
-### 🌐 C. Bộ máy Không gian 3D Đa Tầng & Camera (`src/engine/spatial3DEngine.js`)
-- **Nhiệm vụ**:
-  - Tính toán tọa độ 3 chiều thực thụ ($X, Y, Z$) cho từng nút:
-    - **Tầng Đỉnh ($Y < 0$)**: Các bài báo **Tấn công / Bác bỏ (`isAttacker`)**.
-    - **Tầng Giữa ($Y \approx 0$)**: Chuỗi bài báo **Gốc & Kế thừa** trải theo chiều ngang $X$ và chiều sâu $Z$.
-    - **Tầng Đáy ($Y > 0$)**: Các **Nút Khe Hở Nghiên Cứu (`◇`)** và **Vấn đề chung (`⬢`)**.
-- **Các hàm chính trong [`src/engine/spatial3DEngine.js`](../src/engine/spatial3DEngine.js)**:
-  - `buildSceneGraph()`: Lọc nút theo Phả hệ hoặc bài báo đang cô lập, gán tọa độ 3D.
-  - `relaxNodePositions3D(nodes, minDistance)`: Lực đẩy chống chồng chéo 3 chiều để không bao giờ bị đè chữ.
-  - `project3D(pt, w, h)`: Phép chiếu phối cảnh xoay 360° quanh trục đứng $Y$ (`yaw`) và trục ngang $X$ (`pitch`).
-  - `draw3DVolumetricStage(w, h)`: Vẽ lưới sàn 3D, 3 mặt phẳng phân tầng, đường gióng độ cao từ từng nút xuống sàn, và la bàn trục `X-Y-Z`.
-  - `draw3DEdge()` & `draw3DNode()`: Vẽ đường cong 3D, hạt ánh sáng chạy dọc mũi tên và khối cầu/kim cương.
+## 4. Chi tiết Chức năng Từng Module Mã nguồn
+
+### 1. `src/auth/accessGate.js` & `functions/api/auth.js`
+- **Nhiệm vụ**: Bảo vệ hệ thống khỏi truy cập trái phép; phân quyền người dùng.
+- **Cơ chế**:
+  - Không lưu mật khẩu người dùng trên máy chủ.
+  - Sử dụng chữ ký số `HMAC-SHA256` với khóa bí mật (`MASTER_ADMIN_SECRET`).
+  - Định dạng mã: `F3D.<userId>.<YYYY-MM-DD|PERMANENT>.<admin|member>.<sig>`.
+  - Có chế độ Admin Panel để tạo mã mới có hạn dùng gửi cho Thầy cô hoặc đồng nghiệp.
+
+### 2. `src/store/workspaceStore.js` & `functions/api/workspace.js`
+- **Nhiệm vụ**: Đảm bảo phân vùng lưu trữ cô lập tuyệt đối theo từng `userId`.
+- **Hàm cốt lõi**:
+  - `initWorkspaceForUser(session)`: Khởi tạo dữ liệu người dùng.
+  - `getState()` / `setState()`: Quản lý biến trạng thái đồ thị tập trung.
+  - `saveState()`: Ghi vào `localStorage` và đẩy bất đồng bộ lên Cloudflare KV (`FILIO_KV`).
+  - `deletePaper(id)`: Xóa một bài báo và tự động gỡ bỏ toàn bộ mũi tên 3D liên quan.
+  - `clearWorkspaceState()`: Xóa sạch đồ thị để người dùng tạo dự án mới từ trang trắng.
+  - `getUserPersonalApiKey(provider)` / `saveUserPersonalApiKey(provider, key)`: Lưu trữ API Key cá nhân an toàn.
+
+### 3. `src/engine/spatial3DEngine.js`
+- **Nhiệm vụ**: Bộ máy dựng hình không gian 3 chiều thuần Canvas 2D không phụ thuộc thư viện nặng.
+- **Cơ chế**:
+  - **Phân tầng độ cao $Y$**:
+    - $Y < 0$: Tầng trên dành cho Bài báo Tấn công / Bác bỏ (`refute`).
+    - $Y \approx 0$: Tầng giữa dành cho Dòng chảy kế thừa (`lineage`).
+    - $Y > 0$: Tầng đáy dành cho Khe hở nghiên cứu (`◇`) và Vấn đề chung (`⬢`).
+  - **Thuật toán lực đẩy 3D (`relaxNodePositions3D`)**: Đẩy các nút ra xa nhau theo khoảng cách tối thiểu, chống đè chữ và chèn ép nhãn bài báo.
+  - **Phép chiếu 3D (`project3D`)**: Chiếu từ không gian $(X, Y, Z)$ lên $(u, v)$ màn hình với góc quay `yaw`, `pitch` mượt mà.
+  - **5 Góc nhìn nhanh trực giao**: `🧊 Khối 3D`, `👁 Chính diện`, `⬇ Từ đỉnh`, `➡ Cắt ngang`, `↻ Xoay 360°`.
+
+### 4. `src/engine/gapEngine.js`
+- **Nhiệm vụ**: Tự động phát hiện Khe hở nghiên cứu (`◇`) giữa các công trình mâu thuẫn.
+- **Hàm cốt lõi**:
+  - `computeEcosystemGaps(filterEcoId, isolatedPaperIds)`: Tìm các cặp bài có cạnh `refute` hoặc `conflict` mà chưa có bài thứ ba dung hòa điều kiện biên.
+  - `promoteGapToQuestion(gap, onPromoted)`: Chuyển hóa Khe hở thành Câu hỏi nghiên cứu mới trên đồ thị.
+
+### 5. `src/views/inspectorView.js`
+- **Nhiệm vụ**: Hiển thị bảng chi tiết Floating Right Inspector khi click chọn nút trên đồ thị 3D.
+- **Đặc điểm nổi bật**:
+  - Hiển thị đầy đủ **7 Trụ Cột Tri Thức Khoa Học**.
+  - Hiển thị **Huy hiệu Nguồn gốc Tri thức (Provenance Badges)**: `[🤖 AI]`, `[✍ Người dùng]`, `[◇ Quét thuật toán]`.
+  - Phân tích **Lineage Gap Resolution**: Kiểm tra xem điểm gãy của bài báo đã được bài con nào trong cùng phả hệ khắc phục chưa.
+  - Nút **"🎯 Chỉ hiện Phả hệ & Bài tấn công bài này"** (Cô lập nhánh nghiên cứu).
+  - Nút **"✏ Sửa bài này"** chuyển hướng tức thì sang Tab Biên Soạn.
+
+### 6. `src/views/editorView.js`
+- **Nhiệm vụ**: Giao diện Quản lý và Chỉnh sửa Bài báo (Tab 2).
+- **Đặc điểm nổi bật**:
+  - Cột trái: Thẻ bài báo rút gọn có chip Provenance, chip Phả hệ, viền màu trạng thái, bộ lọc Phả hệ và ô tìm kiếm tức thì.
+  - Cột phải: Form biên soạn 4 Sub-tabs phân màu (Định danh & Đóng góp, Điều kiện & Điểm gãy, Mũi tên 3D, Chuỗi suy luận).
+  - Nút **"🗑 Xóa bài báo này"** giúp xóa bỏ an toàn từng bài báo thừa.
+
+### 7. `src/views/aiHubView.js`
+- **Nhiệm vụ**: Quản lý Tab 3 — Two-Stage Meta-Prompting Pipeline & Bộ Trung Gian Chuẩn Hóa.
+- **Hàm cốt lõi**:
+  - `buildEpistemicMetaPrompt()`: Xây dựng prompt cho AI Prompt Architect (Pha 1).
+  - `buildAiResearchPrompt()`: Xây dựng Super Prompt mẫu chuẩn hóa cho từng họ mô hình (Claude / Gemini / GPT).
+  - `callCloudLlmWithUserKey()`: Gọi trực tiếp Gemini / OpenAI từ trình duyệt hoặc qua Cloudflare Worker proxy cho Claude API bằng Key cá nhân (BYOK).
+  - `parseRawAiOutputToGraph()`: Bộ Trung Gian bóc tách văn bản thô / JSON sang 7 Trụ Cột Tri Thức.
+  - `renderStagingPreview()`: Hiển thị bản xem trước thẻ bài báo kèm 7 Trụ Cột trước khi nạp vào đồ thị.
+
+### 8. `src/views/matrixView.js`
+- **Nhiệm vụ**: Tab 4 — Ma trận Điều kiện & Khe hở Nghiên cứu.
+- **Đặc điểm nổi bật**:
+  - Hiển thị các khối thẻ đối chiếu 4 màu (Nền tảng, Tấn công, Điều kiện biên, Khe hở ◇).
+  - Cơ chế **Phân trang thông minh** (Pagination: 5 bài / trang) tránh tràn màn hình khi có nhiều bài báo.
+  - Ô tìm kiếm từ khóa và bộ lọc theo Phả hệ.
 
 ---
 
-### 🔍 D. Bộ máy Phát hiện Khe hở Nghiên cứu (`src/engine/gapEngine.js`)
-- **Nhiệm vụ**:
-  - Quét toàn bộ các mũi tên `refute` (Tấn công/Bác bỏ) và `conflict` (Tương khắc) để tìm miền điều kiện bị khuyết giữa 2 bài báo.
-- **Các hàm chính trong [`src/engine/gapEngine.js`](../src/engine/gapEngine.js)**:
-  - `computeEcosystemGaps(filterEcoId, isolatedPaperIds)`: Trả về danh sách các Khe hở nghiên cứu (`◇`).
-  - `promoteGapToQuestion(gap, onPromoted)`: Biến một Khe hở thành Câu hỏi nghiên cứu & Chuỗi suy luận mới.
+## 5. Hướng dẫn Bảo trì & Mở rộng (Developer Guide)
 
----
+### Thêm một Trụ cột hoặc Trường dữ liệu mới vào Bài báo:
+1. Cập nhật schema trong `src/data/defaultState.js` và hàm `createDefaultState()`.
+2. Bổ sung trường hiển thị trong `renderFloatingInspector()` tại `src/views/inspectorView.js`.
+3. Bổ sung trường nhập liệu trong `index.html` (Tab 2) và ánh xạ qua `populatePaperEditorForm` / save handler tại `src/views/editorView.js`.
+4. Bổ sung vào định dạng JSON của `buildAiResearchPrompt()` và bộ bóc tách `parseRawAiOutputToGraph()` tại `src/views/aiHubView.js`.
+5. Bổ sung style màu sắc tương ứng trong `styles.css`.
 
-### 🖥️ E. Các Giao diện Thành phần (`src/views/`)
-1. **[`src/views/inspectorView.js`](../src/views/inspectorView.js)**:
-   - `renderFloatingInspector()`: Hiển thị chi tiết bài báo / khe hở ở ngăn nổi bên phải màn hình 3D.
-   - `renderSidebarLineages()`: Danh sách cô lập nhanh từng Phả hệ ở thanh bên trái.
-   - `renderQuestionPopover()`: Hộp thoại xem chuỗi suy luận và nút **Xóa câu hỏi sai (nhưng vẫn giữ nguyên 100% Phả hệ)**.
-2. **[`src/views/editorView.js`](../src/views/editorView.js)**:
-   - `renderEditorTab()`: Vẽ danh sách thẻ bài báo rút gọn có viền màu ở cột trái.
-   - `switchEditorSubtab(subtabId)`: Chuyển đổi giữa 4 phân mục màu sắc (`1. Thông tin & Đóng góp`, `2. Điều kiện & Điểm gãy`, `3. Mũi tên Phả hệ & Tấn công`, `4. Chuỗi suy luận`).
-   - `populatePaperEditorForm(paper)`: Đổ dữ liệu bài báo vào 4 phân mục.
-3. **[`src/views/aiHubView.js`](../src/views/aiHubView.js)**:
-   - `callCloudLlmWithUserKey({ provider, apiKey, model, prompt })`: Gọi Gemini / OpenAI / Claude bằng **chính API Key cá nhân của người dùng đang đăng nhập (BYOK)**.
-   - `parseRawAiOutputToGraph(rawText)`: **Bộ Trung Gian Chuẩn Hóa** — chuyển văn bản thô hoặc JSON từ AI thành các Nút bài báo, Điều kiện biên và Mũi tên 3D.
-4. **[`src/views/matrixView.js`](../src/views/matrixView.js)**:
-   - `renderMatrixTab()`: Hiển thị hệ thống **Thẻ Phân Tầng Màu Sắc** đối chiếu giữa Bài Nền tảng (Xanh), Bài Tấn công (Đỏ), Điều kiện (Vàng) và Khe hở (Hồng).
+### Triển khai Phiên bản Mới lên Cloudflare:
+```bash
+# 1. Kiểm tra cú pháp toàn bộ file JS
+node -c src/main.js
+node -c src/views/inspectorView.js
+node -c src/views/aiHubView.js
+node -c src/views/editorView.js
 
----
+# 2. Commit git
+git add .
+git commit -m "feat: your feature"
+git push origin main
 
-## 3. Hướng dẫn Triển khai Miễn phí lên Cloudflare Pages (Dành cho 20–50 người dùng)
-
-1. Đẩy toàn bộ repo này lên GitHub (`https://github.com/lawnguyenit/Filio3D`).
-2. Đăng nhập vào **Cloudflare Dashboard** -> Chọn **Workers & Pages** -> **Create Application** -> **Pages** -> **Connect to Git** -> Chọn repo `Filio3D`.
-3. Ở bước cấu hình Build:
-   - **Framework preset**: `None`
-   - **Build command**: *(để trống)*
-   - **Build output directory**: `/`
-4. *(Tùy chọn để lưu trữ đám mây riêng cho từng người)*:
-   - Vào **Workers & Pages -> KV** -> Tạo 1 namespace tên là `FILIO_KV`.
-   - Vào **Settings -> Functions -> KV namespace bindings** của dự án Pages -> Gắn biến `FILIO_KV` trỏ tới namespace vừa tạo.
-5. *(Tùy chọn đổi mật khẩu ký mã)*:
-   - Vào **Settings -> Environment variables** -> Thêm `MASTER_ADMIN_SECRET` (mật khẩu riêng của bạn để tạo mã) và `WORKSPACE_SIGNING_SECRET` (chuỗi bí mật ký HMAC).
+# 3. Deploy Cloudflare Workers
+npx wrangler deploy
+```
