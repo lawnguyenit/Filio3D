@@ -1,12 +1,11 @@
 name = "filio3d"
 main = "worker.js"
 compatibility_date = "2025-01-01"
+account_id = "0ca09478232e9fc6e3fc8b1f9765ee60"
 
 [assets]
 directory = "."
 
-# Hướng dẫn gắn Cloudflare KV miễn phí (100.000 lượt đọc/ngày, 5GB lưu trữ):
-# Khi tạo KV Namespace trên Cloudflare Dashboard, bỏ dấu '#' ở 3 dòng dưới và điền ID của bạn vào:
-# [[kv_namespaces]]
-# binding = "FILIO_KV"
-# id = "YOUR_CLOUDFLARE_KV_NAMESPACE_ID"
+[[kv_namespaces]]
+binding = "FILIO_KV"
+id = "461bd8bda1db454fb1e10a687a9e871b"

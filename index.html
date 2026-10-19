@@ -223,6 +223,7 @@
             <span id="storageStatsText">Đang tải...</span>
           </div>
           <div class="side-footer">
+            <button id="btnClearWorkspace" class="footer-btn-danger" title="Xóa trắng toàn bộ đồ thị để nghiên cứu từ đầu">🗑 Xóa trắng</button>
             <button id="btnResetDemo" title="Khôi phục dữ liệu mẫu (Weak Label, RAG...)">Mẫu gốc</button>
             <button id="btnExportQuick" title="Xuất file JSON để lưu lên Google Drive">Xuất JSON</button>
             <button id="btnImportQuick" title="Nhập file JSON">Nhập</button>
@@ -410,8 +411,9 @@
                   <h2 id="editorFormHeading">Chỉnh sửa Bài báo</h2>
                 </div>
                 <div style="display:flex;gap:8px">
-                  <button class="secondary-button" id="btnViewCurrentIn3D">🎯 Xem & Cô lập trên 3D</button>
-                  <button class="primary-button" id="btnSavePaperEditor">💾 Lưu Bài Báo</button>
+                  <button type="button" class="danger-outline-button" id="btnDeleteCurrentPaper" style="padding:7px 13px;font-size:12px" title="Xóa bài báo này khỏi hệ thống">🗑 Xóa bài báo</button>
+                  <button type="button" class="secondary-button" id="btnViewCurrentIn3D">🎯 Xem trên 3D</button>
+                  <button type="button" class="primary-button" id="btnSavePaperEditor">💾 Lưu Bài Báo</button>
                 </div>
               </div>
 

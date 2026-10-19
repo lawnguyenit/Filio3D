@@ -80,6 +80,34 @@ export function resetToDefaultWorkspace() {
 }
 
 /**
+ * Xóa sạch toàn bộ đồ thị để người dùng bắt đầu không gian nghiên cứu mới từ đầu (Canvas trống)
+ */
+export function clearWorkspaceState() {
+  state = {
+    ecosystems: [
+      { id: 'eco-custom-1', title: 'Phả hệ Nghiên cứu Mới', color: '#6366f1', description: 'Phả hệ nghiên cứu tùy chỉnh của bạn' },
+    ],
+    sources: [],
+    relations: [],
+    problems: [],
+    reasoningChains: [],
+  };
+  saveState();
+  return state;
+}
+
+/**
+ * Xóa một bài báo khỏi kho dữ liệu và tự động gỡ bỏ mọi mũi tên liên kết liên quan
+ */
+export function deletePaper(paperId) {
+  if (!paperId) return false;
+  state.sources = state.sources.filter((s) => s.id !== paperId);
+  state.relations = state.relations.filter((r) => r.from !== paperId && r.to !== paperId);
+  saveState();
+  return true;
+}
+
+/**
  * Lưu trạng thái đồ thị vào đúng phân vùng riêng của userId hiện tại (Local + Cloud)
  */
 export function saveState() {

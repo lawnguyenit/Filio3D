@@ -13,6 +13,7 @@ import {
   setState,
   saveState,
   resetToDefaultWorkspace,
+  clearWorkspaceState,
   exportWorkspaceJson,
 } from './store/workspaceStore.js';
 import {
@@ -52,7 +53,7 @@ export function switchView(nextView) {
         ? sceneState.activeNodeId
         : state.sources[0]?.id;
     setEditingPaperId(targetId);
-    renderEditorTab();
+    renderEditorTab(switchView);
   } else if (nextView === 'ai-hub') {
     renderAiHubTab();
   } else if (nextView === 'matrix') {
@@ -103,6 +104,22 @@ function bindGlobalSidebarEvents() {
     fitCameraToVisibleScene();
     renderFloatingInspector();
     notify('Đã khôi phục dữ liệu mẫu cho không gian của bạn!');
+  });
+
+  $('#btnClearWorkspace')?.addEventListener('click', () => {
+    if (!confirm('⚠️ Bạn có chắc chắn muốn XÓA TRẮNG toàn bộ đồ thị không?\n\nToàn bộ các bài báo và mối liên kết đã lưu trong không gian của bạn sẽ bị xóa để bạn bắt đầu tạo nghiên cứu mới từ đầu.')) return;
+    clearWorkspaceState();
+    sceneState.selectedLineageId = 'all';
+    sceneState.isolatedFocusNodeId = null;
+    sceneState.activeNodeId = null;
+    switchView('explore');
+    renderSidebarLineages(switchView);
+    buildSceneGraph();
+    fitCameraToVisibleScene();
+    renderFloatingInspector();
+    renderEditorTab();
+    renderMatrixTab(switchView);
+    notify('🗑 Đã xóa trắng đồ thị. Không gian nghiên cứu sẵn sàng cho bạn tạo bài báo mới!');
   });
 
   $('#btnExportQuick')?.addEventListener('click', () => exportWorkspaceJson());

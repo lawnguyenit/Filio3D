@@ -6,7 +6,7 @@
  */
 
 import { ARROW_TYPES, CONDITION_CATEGORIES } from '../config/constants.js';
-import { getState, saveState } from '../store/workspaceStore.js';
+import { getState, saveState, deletePaper } from '../store/workspaceStore.js';
 import { sceneState, buildSceneGraph, fitCameraToVisibleScene } from '../engine/spatial3DEngine.js';
 import { renderSidebarLineages } from './inspectorView.js';
 import { $, $$, escapeHTML, shortAuthor, notify } from '../utils/dom.js';
@@ -37,7 +37,7 @@ function updateSubtabCounts() {
   if ($('#subtabChainCount')) $('#subtabChainCount').textContent = chainCount;
 }
 
-export function renderEditorTab() {
+export function renderEditorTab(switchViewFn) {
   const state = getState();
   const listEl = $('#editorPaperList');
   const ecoFilterEl = $('#editorEcoFilter');
@@ -62,6 +62,14 @@ export function renderEditorTab() {
 
   if ($('#editorPaperCount')) $('#editorPaperCount').textContent = filtered.length;
 
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div style="text-align:center;padding:32px 16px;color:#94a3b8;font-size:12px">
+      Chưa có bài báo nào trong không gian này.<br>Bấm <b>"＋ Bài báo mới"</b> ở trên để thêm bài đầu tiên!
+    </div>`;
+    populatePaperEditorForm(null);
+    return;
+  }
+
   listEl.innerHTML = filtered
     .map((p) => {
       const eco = state.ecosystems.find((e) => e.id === p.ecosystemId);
@@ -71,19 +79,24 @@ export function renderEditorTab() {
         (r) => r.from === p.id && (r.type === 'refute' || r.type === 'conflict')
       );
       const condCount = (p.conditions || []).length;
+      // Dùng tông màu trầm, thanh lịch hơn thay vì dải màu neon chói mắt
+      const accentBorder = isAttacker ? '#dc2626' : (ecoColor || '#475569');
 
       return `
       <div class="paper-list-card ${p.id === currentEditingPaperId ? 'selected' : ''}"
-           style="border-left-color: ${isAttacker ? '#ef4444' : ecoColor}"
+           style="--card-accent:${accentBorder};"
            data-edit-select="${escapeHTML(p.id)}">
-        <h4 class="paper-card-title">${escapeHTML(p.title)}</h4>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+          <h4 class="paper-card-title">${escapeHTML(p.title)}</h4>
+          <button type="button" class="card-quick-del-btn" data-quick-del-paper="${escapeHTML(p.id)}" title="Xóa bài báo này">✕</button>
+        </div>
         <div class="paper-card-chips">
           <span class="card-chip chip-year">${p.year}</span>
           <span class="card-chip chip-author">${escapeHTML(shortAuthor(p))}</span>
           <span class="card-chip chip-lineage" style="background:${ecoColor}">${escapeHTML(shortEcoName)}</span>
           ${
             isAttacker
-              ? `<span class="card-chip chip-attack">⚡ Bài Tấn công</span>`
+              ? `<span class="card-chip chip-attack">⚡ Tấn công</span>`
               : `<span class="card-chip chip-cond-count">⚖ ${condCount} ĐK</span>`
           }
         </div>
@@ -94,8 +107,26 @@ export function renderEditorTab() {
   $$('[data-edit-select]', listEl).forEach((card) =>
     card.addEventListener('click', () => {
       currentEditingPaperId = card.dataset.editSelect;
-      renderEditorTab();
+      renderEditorTab(switchViewFn);
       populatePaperEditorForm(state.sources.find((s) => s.id === currentEditingPaperId));
+    })
+  );
+
+  $$('[data-quick-del-paper]', listEl).forEach((btn) =>
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const pid = btn.dataset.quickDelPaper;
+      const targetP = state.sources.find((s) => s.id === pid);
+      if (!confirm(`Bạn có chắc chắn muốn xóa bài báo "${targetP?.title || pid}" khỏi hệ sinh thái không? Toàn bộ các liên kết liên quan sẽ tự động được gỡ bỏ.`)) return;
+      deletePaper(pid);
+      if (currentEditingPaperId === pid) {
+        currentEditingPaperId = state.sources[0]?.id || '';
+      }
+      sceneState.activeNodeId = currentEditingPaperId;
+      renderEditorTab(switchViewFn);
+      renderSidebarLineages(switchViewFn);
+      buildSceneGraph();
+      notify('🗑 Đã xóa bài báo thành công.');
     })
   );
 
@@ -361,12 +392,18 @@ export function initEditorEvents(switchViewFn) {
   $('#btnDeleteCurrentPaper')?.addEventListener('click', () => {
     const state = getState();
     const pid = $('#editPaperId').value;
-    if (!pid || !confirm('Xóa bài báo này khỏi hệ sinh thái?')) return;
-    state.sources = state.sources.filter((s) => s.id !== pid);
-    state.relations = state.relations.filter((r) => r.from !== pid && r.to !== pid);
-    saveState();
+    if (!pid) {
+      notify('Chưa chọn bài báo nào để xóa.');
+      return;
+    }
+    const targetP = state.sources.find((s) => s.id === pid);
+    if (!confirm(`Bạn có chắc chắn muốn xóa bài báo "${targetP?.title || pid}" khỏi hệ sinh thái không? Toàn bộ các liên kết liên quan sẽ tự động được gỡ bỏ.`)) return;
+    deletePaper(pid);
     currentEditingPaperId = state.sources[0]?.id || '';
-    renderEditorTab();
-    notify('Đã xóa bài báo.');
+    sceneState.activeNodeId = currentEditingPaperId;
+    renderEditorTab(switchViewFn);
+    renderSidebarLineages(switchViewFn);
+    buildSceneGraph();
+    notify('🗑 Đã xóa bài báo thành công.');
   });
 }
