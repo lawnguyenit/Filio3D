@@ -142,22 +142,23 @@ Filio3D Workspace Ecosystem
 │       ├── Sub-tab 4 (Xanh dương): Chuỗi suy luận nội tại của bài báo
 │       └── Nút "🗑 Xóa bài báo này" kèm xác nhận an toàn
 │
-├── 🤖 VIEW 3: AI & BỘ TRUNG GIAN CHUẨN HÓA (AI Hub & BYOK)
-│   ├── Bảo mật Cloud BYOK (Bring Your Own Key):
-│   │   ├── Hỗ trợ: Google Gemini (3.8 Flash), OpenAI (GPT-4o), Anthropic Claude (3.7 Sonnet)
-│   │   └── Chế độ dán thủ công dành cho người không dùng API Key
-│   ├── Bộ chọn Chế độ Tra cứu 2 Chiều:
-│   │   ├── Chế độ 1: Phân rã Hiện tượng ➔ Tìm Bài báo & Kiểm chứng giả thuyết
-│   │   └── Chế độ 2: Đưa 1 Bài báo mục tiêu ➔ Tìm Đòn Tấn công & Phòng thủ
-│   ├── Quy trình Meta-Prompting 2 Pha:
-│   │   ├── Pha 1: ✨ AI Tinh Chế Prompt (AI Prompt Architect)
-│   │   ├── Khung Xem & Chỉnh sửa Super Prompt (#aiRefinedPromptBox)
-│   │   └── Pha 2: 🚀 Khai Thác Đồ Thị (Dialectic Extraction)
+├── 🤖 VIEW 3: AI & BỘ TRUNG GIAN CHUẨN HÓA (AI Hub & Step-by-Step BYOK Flow)
+│   ├── Két Khóa API Cá Nhân (Multi-Key BYOK Vault):
+│   │   ├── Lưu trữ không giới hạn nhiều API Key (Gemini, OpenAI, Claude) trong Két Khóa cá nhân
+│   │   ├── Hỗ trợ đầy đủ Thêm / Sửa / Xóa / Kích hoạt Key đang dùng ngay trên thanh điều khiển
+│   │   ├── Cơ chế Khóa Cổng (Gatekeeper Lock) bảo vệ tài nguyên khi người dùng chưa có API Key
+│   │   └── Nút "⚡ Dùng Thử Mẫu Chuẩn" để trải nghiệm ngay mà không cần nhập Key
+│   ├── Bộ Chọn Chế Độ Gọn Gàng (Single-line, không xuống dòng):
+│   │   ├── [💡 Phân rã Hiện tượng]: Đưa chuỗi suy luận ➔ Tìm bài báo & kiểm chứng
+│   │   └── [🛡️⚔️ Tấn công & Phòng thủ]: Đưa bài báo mục tiêu ➔ Tìm đòn phản biện & kế thừa
+│   ├── Quy Trình 3 Bước Toàn Màn Hình (Không cuộn dọc, Vừa vặn 100vh):
+│   │   ├── Bước 1: Nhập hiện tượng quan sát & chuỗi phân rã suy luận
+│   │   ├── Bước 2: Tinh chế Super Prompt (Pha 1) + Modal nổi [👁 Xem / Sửa Super Prompt]
+│   │   └── Bước 3: Khai thác Đồ thị (Pha 2) + Modal nổi [🔬 Xem Bóc Tách 7 Trụ Cột]
 │   └── Bộ Trung Gian Chuẩn Hóa (Intermediate Formatter):
-│       ├── Bóc tách cả JSON và Markdown tự do sang 7 Trụ Cột
+│       ├── Bóc tách cả JSON và Markdown tự do sang 7 Trụ Cột Tri Thức
 │       ├── Gắn nhãn Provenance tự động
-│       ├── Khung Staging Preview trực quan
-│       └── Nút "⚡ Nạp thẳng vào Không gian 3D"
+│       └── Nút "⚡ Nạp thẳng vào Không gian 3D" chuyển ngay sang Tab 3D với góc quay tối ưu
 │
 ├── 📊 VIEW 4: MA TRẬN ĐIỀU KIỆN & KHE HỞ (Condition Matrix & Gap Discovery)
 │   ├── Bảng Thẻ Phân Tầng Đối Chiếu 4 Màu Sắc:

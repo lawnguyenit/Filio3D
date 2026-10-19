@@ -1,15 +1,22 @@
 /**
  * @file src/views/aiHubView.js
- * @description Quản lý Tab 3 ("AI & Bộ Trung Gian") theo cơ chế Cloud BYOK (Bring Your Own Key):
- * - Mỗi người dùng tự nhập API Key của riêng họ (Gemini / OpenAI / Claude API) để gọi AI, tuyệt đối không dùng chung hay tiêu tốn tài nguyên API của chủ web.
- * - Người không có API Key vẫn có thể copy Prompt chuẩn hoặc dán văn bản vào "Bộ Trung Gian Chuẩn Hóa" để nạp vào đồ thị 3D.
- * - Đã loại bỏ các kết nối Desktop cục bộ không khả dụng trên môi trường Cloud.
+ * @description Quản lý Tab 3 ("AI & Bộ Trung Gian") theo cơ chế Cloud Multi-Key BYOK:
+ * - Người dùng quản lý nhiều API Key trong Két Khóa cá nhân (Gemini / OpenAI / Claude).
+ * - Luồng làm việc 3 bước sạch sẽ, vừa vặn 1 màn hình (100vh), KHÔNG CUỘN, KHÔNG TRÀN CHỮ.
+ * - Form nổi (Floating Modals) cho: Quản lý Keys, Xem/Sửa Super Prompt, và Xem Bóc Tách 7 Trụ Cột.
  */
 
 import { ARROW_TYPES, CLOUD_LLM_PROVIDERS } from '../config/constants.js';
 import {
   getState,
   saveState,
+  getUserApiKeys,
+  saveUserApiKey,
+  deleteUserApiKey,
+  getActiveApiKeyId,
+  setActiveApiKeyId,
+  getActiveApiKeyRecord,
+  hasAnyApiKey,
   getUserPersonalApiKey,
   saveUserPersonalApiKey,
 } from '../store/workspaceStore.js';
@@ -17,51 +24,70 @@ import { sceneState, buildSceneGraph, fitCameraToVisibleScene } from '../engine/
 import { renderSidebarLineages, renderFloatingInspector } from './inspectorView.js';
 import { $, $$, escapeHTML, notify } from '../utils/dom.js';
 
-let selectedAiProvider = 'gemini-api';
 let selectedAiMode = 'decompose'; // 'decompose' | 'attack_defense'
+let currentAiStep = 1; // 1 | 2 | 3
 let stagedGraphData = null;
+let isGatekeeperBypassed = false;
+
+export function setAiStep(step) {
+  currentAiStep = step;
+  for (let i = 1; i <= 3; i++) {
+    const ind = $(`#stepIndicator${i}`);
+    const pane = $(`#aiStep${i}Pane`);
+    if (ind) {
+      ind.classList.toggle('active', i === step);
+      ind.classList.toggle('completed', i < step);
+    }
+    if (pane) {
+      pane.hidden = i !== step;
+      pane.classList.toggle('active', i === step);
+    }
+  }
+}
 
 export function renderAiHubTab() {
   const state = getState();
   const ecoSelect = $('#aiTargetEcosystem');
   if (ecoSelect) {
     ecoSelect.innerHTML =
-      `<option value="new">✨ Tự tạo Phả hệ mới theo vấn đề tra cứu</option>` +
+      `<option value="new">✨ Tự tạo Phả hệ mới theo vấn đề</option>` +
       state.ecosystems.map((e) => `<option value="${escapeHTML(e.id)}">${escapeHTML(e.title)}</option>`).join('');
   }
-  syncProviderUiState();
+
+  const hasKeys = hasAnyApiKey();
+  const gatekeeperBox = $('#aiGatekeeperCard');
+  const mainWorkflow = $('#aiMainWorkflow');
+
+  if (!hasKeys && !isGatekeeperBypassed) {
+    if (gatekeeperBox) gatekeeperBox.hidden = false;
+    if (mainWorkflow) mainWorkflow.hidden = true;
+  } else {
+    if (gatekeeperBox) gatekeeperBox.hidden = true;
+    if (mainWorkflow) mainWorkflow.hidden = false;
+    syncActiveKeyDropdown();
+  }
 }
 
-function syncProviderUiState() {
-  const dropdown = $('#aiProviderDropdown');
-  if (dropdown) {
-    selectedAiProvider = dropdown.value || 'gemini-api';
-  }
-  const cfg = CLOUD_LLM_PROVIDERS[selectedAiProvider] || CLOUD_LLM_PROVIDERS['gemini-api'];
-  const hintEl = $('#aiProviderHint');
-  if (hintEl) hintEl.textContent = cfg.hint;
+export function syncActiveKeyDropdown() {
+  const keySelect = $('#aiActiveKeySelect');
+  if (!keySelect) return;
+  const keys = getUserApiKeys();
+  const activeId = getActiveApiKeyId();
 
-  const isManual = selectedAiProvider === 'manual-paste';
-  const apiBox = $('#apiConfigBox');
-  if (apiBox) apiBox.hidden = isManual;
-
-  const keyInput = $('#aiApiKeyInput');
-  if (keyInput && !isManual) {
-    keyInput.placeholder = cfg.keyPlaceholder;
-    keyInput.value = getUserPersonalApiKey(selectedAiProvider);
+  if (keys.length === 0) {
+    keySelect.innerHTML = `<option value="">(Chưa có Key — Chạy Mẫu)</option>`;
+    return;
   }
 
-  const modelInput = $('#aiModelInput');
-  if (modelInput && !isManual) {
-    if (!modelInput.value || modelInput.value === 'gemini-2.5-flash') {
-      modelInput.value = cfg.defaultModel;
-    }
-  }
-
-  const execBtn = $('#btnExecuteAiQuery');
-  if (execBtn) {
-    execBtn.hidden = isManual;
-  }
+  keySelect.innerHTML = keys
+    .map(
+      (k) =>
+        `<option value="${escapeHTML(k.id)}" ${k.id === activeId ? 'selected' : ''}>${escapeHTML(k.name)} (${escapeHTML(
+          k.model || k.provider
+        )})</option>`
+    )
+    .join('');
+  keySelect.value = activeId || keys[0]?.id || '';
 }
 
 export function buildEpistemicMetaPrompt({ provider, mode, phenomenon, chain, targetPaper, targetCore, attackReq }) {
@@ -669,11 +695,200 @@ async function callCloudLlmWithUserKey({ provider, apiKey, model, prompt }) {
   return proxyData;
 }
 
+// =========================================================================
+// QUẢN LÝ KÉT KHÓA API KEY CÁ NHÂN (MULTI-KEY BYOK VAULT)
+// =========================================================================
+
+function openVaultModal() {
+  const modal = $('#apiKeyVaultModal');
+  if (modal) modal.hidden = false;
+  resetVaultForm();
+  renderVaultKeysList();
+}
+
+function closeVaultModal() {
+  const modal = $('#apiKeyVaultModal');
+  if (modal) modal.hidden = true;
+  renderAiHubTab();
+}
+
+function resetVaultForm() {
+  const editId = $('#vaultKeyEditId');
+  if (editId) editId.value = '';
+  const nameInput = $('#vaultKeyNameInput');
+  if (nameInput) nameInput.value = '';
+  const provSelect = $('#vaultKeyProviderSelect');
+  if (provSelect) provSelect.value = 'gemini-api';
+  const modelInput = $('#vaultKeyModelInput');
+  if (modelInput) modelInput.value = 'gemini-3.8-flash';
+  const secretInput = $('#vaultKeySecretInput');
+  if (secretInput) {
+    secretInput.value = '';
+    secretInput.type = 'password';
+  }
+  const heading = $('#vaultFormHeading');
+  if (heading) heading.textContent = '＋ Thêm API Key Mới';
+  const cancelBtn = $('#btnCancelEditVaultKey');
+  if (cancelBtn) cancelBtn.hidden = true;
+}
+
+function renderVaultKeysList() {
+  const listEl = $('#vaultKeysList');
+  const countEl = $('#vaultKeyCount');
+  if (!listEl) return;
+
+  const keys = getUserApiKeys();
+  const activeId = getActiveApiKeyId();
+  if (countEl) countEl.textContent = keys.length;
+
+  if (keys.length === 0) {
+    listEl.innerHTML = `<div style="text-align:center;padding:18px;color:#94a3b8;font-size:12px;border:1px dashed #475569;border-radius:8px">Chưa có API Key nào trong két. Hãy điền form phía trên để thêm key đầu tiên.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = keys
+    .map((k) => {
+      const isActive = k.id === activeId;
+      const maskedKey = k.apiKey
+        ? `${k.apiKey.slice(0, 6)}••••••••${k.apiKey.slice(-4)}`
+        : '(chưa có key)';
+      const provBadgeClass =
+        k.provider === 'gemini-api'
+          ? 'vault-badge-gemini'
+          : k.provider === 'openai-api'
+          ? 'vault-badge-openai'
+          : 'vault-badge-claude';
+      const provName =
+        k.provider === 'gemini-api'
+          ? 'Google Gemini'
+          : k.provider === 'openai-api'
+          ? 'OpenAI'
+          : 'Anthropic Claude';
+
+      return `
+        <div class="vault-key-card ${isActive ? 'active-key' : ''}" data-key-id="${escapeHTML(k.id)}">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+              <span class="vault-badge ${provBadgeClass}">${escapeHTML(provName)}</span>
+              <b style="color:#f8fafc;font-size:12.5px">${escapeHTML(k.name)}</b>
+              ${
+                isActive
+                  ? '<span style="font-size:10px;background:#059669;color:#fff;padding:1px 6px;border-radius:4px;font-weight:700">Đang chọn</span>'
+                  : ''
+              }
+            </div>
+            <div style="font-size:11px;color:#94a3b8;font-family:monospace">
+              <span>Model: ${escapeHTML(k.model || 'mặc định')}</span> · <span>Key: ${escapeHTML(maskedKey)}</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            ${
+              !isActive
+                ? `<button type="button" class="secondary-button btn-vault-activate" data-id="${escapeHTML(
+                    k.id
+                  )}" style="padding:4px 8px;font-size:11px">Kích hoạt</button>`
+                : ''
+            }
+            <button type="button" class="secondary-button btn-vault-edit" data-id="${escapeHTML(
+              k.id
+            )}" style="padding:4px 8px;font-size:11px" title="Chỉnh sửa">✎</button>
+            <button type="button" class="danger-outline-button btn-vault-del" data-id="${escapeHTML(
+              k.id
+            )}" style="padding:4px 8px;font-size:11px" title="Xóa">🗑</button>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  $$('.btn-vault-activate').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setActiveApiKeyId(btn.dataset.id);
+      renderVaultKeysList();
+      syncActiveKeyDropdown();
+      notify('✔ Đã kích hoạt API Key!');
+    });
+  });
+
+  $$('.btn-vault-edit').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const key = keys.find((x) => x.id === id);
+      if (!key) return;
+      $('#vaultKeyEditId').value = key.id;
+      $('#vaultKeyNameInput').value = key.name || '';
+      $('#vaultKeyProviderSelect').value = key.provider || 'gemini-api';
+      $('#vaultKeyModelInput').value = key.model || 'gemini-3.8-flash';
+      $('#vaultKeySecretInput').value = key.apiKey || '';
+      $('#vaultFormHeading').textContent = '✎ Chỉnh Sửa API Key';
+      $('#btnCancelEditVaultKey').hidden = false;
+      $('#vaultKeyNameInput').focus();
+    });
+  });
+
+  $$('.btn-vault-del').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      if (confirm('Bạn có chắc chắn muốn xóa API Key này khỏi két?')) {
+        deleteUserApiKey(id);
+        renderVaultKeysList();
+        syncActiveKeyDropdown();
+        notify('🗑 Đã xóa API Key khỏi két.');
+      }
+    });
+  });
+}
+
+function ingestStagedGraphTo3D(switchViewFn) {
+  const state = getState();
+  if (!stagedGraphData || !stagedGraphData.papers.length) {
+    notify('Chưa có dữ liệu bài báo hợp lệ để nạp vào 3D.');
+    return;
+  }
+
+  let targetEcoId = $('#aiTargetEcosystem')?.value;
+  if (!targetEcoId || targetEcoId === 'new') {
+    const palette = ['#0ea5e9', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b'];
+    targetEcoId = `eco-${crypto.randomUUID().slice(0, 6)}`;
+    state.ecosystems.push({
+      id: targetEcoId,
+      title: stagedGraphData.lineageTitle || `Phả hệ: ${$('#aiTopicInput')?.value?.trim() || 'Nghiên cứu mới'}`,
+      description: 'Phả hệ được bóc tách và tái tổ hợp qua Bộ Trung Gian AI (7 Trụ Cột Tri Thức).',
+      color: palette[state.ecosystems.length % palette.length],
+    });
+  }
+
+  stagedGraphData.papers.forEach((p) => {
+    p.ecosystemId = targetEcoId;
+    state.sources.push(p);
+  });
+  stagedGraphData.relations.forEach((r) => {
+    state.relations.push(r);
+  });
+
+  sceneState.selectedLineageId = targetEcoId;
+  sceneState.isolatedFocusNodeId = null;
+  sceneState.activeNodeId = stagedGraphData.papers[0]?.id || null;
+  saveState();
+
+  // Đóng modal nổi nếu đang mở
+  const stagingModal = $('#stagingViewerModal');
+  if (stagingModal) stagingModal.hidden = true;
+
+  if (typeof switchViewFn === 'function') switchViewFn('explore');
+  renderSidebarLineages(switchViewFn);
+  buildSceneGraph();
+  fitCameraToVisibleScene();
+  renderFloatingInspector();
+  notify(`⚡ Đã nạp ${stagedGraphData.papers.length} bài báo vào Không gian 3D riêng của bạn!`);
+}
+
 export function initAiHubEvents(switchViewFn) {
-  $$('.ai-mode-btn').forEach((btn) => {
+  // 1. CHUYỂN CHẾ ĐỘ NGHIÊN CỨU
+  $$('.ai-compact-modes .ai-mode-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       selectedAiMode = btn.dataset.aiMode;
-      $$('.ai-mode-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      $$('.ai-compact-modes .ai-mode-btn').forEach((b) => b.classList.toggle('active', b === btn));
       const decompPanel = $('#aiModeDecomposePanel');
       const attackPanel = $('#aiModeAttackDefensePanel');
       if (decompPanel) decompPanel.hidden = selectedAiMode !== 'decompose';
@@ -681,147 +896,73 @@ export function initAiHubEvents(switchViewFn) {
     });
   });
 
-  $('#aiProviderDropdown')?.addEventListener('change', () => {
-    syncProviderUiState();
+  // 2. CHỌN KEY ĐANG HOẠT ĐỘNG TỪ DROPDOWN TOPBAR
+  $('#aiActiveKeySelect')?.addEventListener('change', (e) => {
+    if (e.target.value) {
+      setActiveApiKeyId(e.target.value);
+      notify('✔ Đã kích hoạt API Key: ' + e.target.options[e.target.selectedIndex].text);
+    }
   });
 
-  $('#aiApiKeyInput')?.addEventListener('change', (e) => {
-    saveUserPersonalApiKey(selectedAiProvider, e.target.value);
+  // 3. MỞ & ĐÓNG MODAL KÉT KHÓA (BYOK VAULT)
+  $('#btnOpenKeyVault')?.addEventListener('click', openVaultModal);
+  $('#btnGatekeeperAddKey')?.addEventListener('click', openVaultModal);
+  $('#btnCloseKeyVaultModal')?.addEventListener('click', closeVaultModal);
+
+  // 4. CHUYỂN ĐỔI ẨN / HIỆN KEY TRONG FORM VAULT
+  $('#btnToggleVaultKeyVisibility')?.addEventListener('click', () => {
+    const secretInput = $('#vaultKeySecretInput');
+    if (secretInput) {
+      secretInput.type = secretInput.type === 'password' ? 'text' : 'password';
+    }
   });
 
-  // =========================================================================
-  // PHA 1: AI TINH CHẾ PROMPT (META-PROMPT ARCHITECT)
-  // =========================================================================
-  $('#btnRefinePromptStage1')?.addEventListener('click', async () => {
-    const apiKey = ($('#aiApiKeyInput')?.value || '').trim();
-    const model = ($('#aiModelInput')?.value || '').trim() || 'gemini-3.8-flash';
-    const statusBadge = $('#promptStatusBadge');
-    const refinedBox = $('#aiRefinedPromptBox');
-    const btn = $('#btnRefinePromptStage1');
+  // 5. ĐỔI PROVIDER TRONG FORM VAULT -> TỰ ĐIỀN DEFAULT MODEL
+  $('#vaultKeyProviderSelect')?.addEventListener('change', (e) => {
+    const prov = e.target.value;
+    const modelInput = $('#vaultKeyModelInput');
+    if (!modelInput) return;
+    if (prov === 'gemini-api') modelInput.value = 'gemini-3.8-flash';
+    else if (prov === 'openai-api') modelInput.value = 'gpt-4o-mini';
+    else if (prov === 'claude-api') modelInput.value = 'claude-3-5-sonnet';
+  });
 
-    // NẾU CHƯA CÓ API KEY: Sinh prompt template chuẩn hóa cho mô hình, hiển thị cảnh báo hướng dẫn
+  // 6. LƯU KEY VÀO KÉT KHÓA
+  $('#btnSaveVaultKey')?.addEventListener('click', () => {
+    const name = ($('#vaultKeyNameInput')?.value || '').trim();
+    const provider = $('#vaultKeyProviderSelect')?.value || 'gemini-api';
+    const model = ($('#vaultKeyModelInput')?.value || '').trim() || 'gemini-3.8-flash';
+    const apiKey = ($('#vaultKeySecretInput')?.value || '').trim();
+    const editId = $('#vaultKeyEditId')?.value || '';
+
     if (!apiKey) {
-      const templatePrompt = buildAiResearchPrompt();
-      if (refinedBox) refinedBox.value = templatePrompt;
-      if (statusBadge) {
-        statusBadge.innerHTML = `<span style="color:#f59e0b">Mẫu chuẩn (Chưa có Key)</span>`;
-      }
-      notify(
-        `⚠️ Bạn chưa nhập API Key cá nhân. Filio3D đã sinh sẵn Super Prompt chuẩn cho ${selectedAiProvider}. Bấm "📋 Chép Prompt" để dán vào ChatGPT / Claude / Gemini Web rồi đưa kết quả vào ô bên phải!`
-      );
+      notify('⛔ Vui lòng nhập API Key bí mật của bạn.');
+      $('#vaultKeySecretInput')?.focus();
       return;
     }
 
-    // NẾU CÓ API KEY: Gọi AI Epistemic Prompt Architect để tinh chế sâu
-    saveUserPersonalApiKey(selectedAiProvider, apiKey);
-    btn.disabled = true;
-    btn.textContent = '⏳ AI Architect đang tinh chế...';
-    if (statusBadge) statusBadge.textContent = '⏳ Đang tinh chế...';
-
-    const metaPrompt = buildEpistemicMetaPrompt({
-      provider: selectedAiProvider,
-      mode: selectedAiMode,
-      phenomenon: ($('#aiTopicInput')?.value || '').trim(),
-      chain: ($('#aiDecomposeChainInput')?.value || '').trim(),
-      targetPaper: ($('#aiTargetPaperInput')?.value || '').trim(),
-      targetCore: ($('#aiTargetCoreInput')?.value || '').trim(),
-      attackReq: ($('#aiAttackInstruction')?.value || '').trim(),
+    const saved = saveUserApiKey({
+      id: editId || undefined,
+      name: name || (provider === 'gemini-api' ? 'Gemini Key' : provider === 'openai-api' ? 'OpenAI Key' : 'Claude Key'),
+      provider,
+      model,
+      apiKey,
+      makeActive: true,
     });
 
-    try {
-      const result = await callCloudLlmWithUserKey({
-        provider: selectedAiProvider,
-        apiKey,
-        model,
-        prompt: metaPrompt,
-      });
-
-      if (refinedBox) refinedBox.value = result.text;
-      if (statusBadge) {
-        statusBadge.innerHTML = `<span style="color:#10b981">✨ Đã tinh chế bởi AI Architect</span>`;
-      }
-      notify(
-        `✨ Pha 1 thành công! AI Architect đã tinh chế xong Super Prompt. Bạn có thể xem lại rồi bấm "🚀 Khai Thác Đồ Thị (Pha 2)".`
-      );
-    } catch (err) {
-      // Fallback về prompt chuẩn nếu gọi meta-prompt thất bại
-      const fallbackPrompt = buildAiResearchPrompt();
-      if (refinedBox) refinedBox.value = fallbackPrompt;
-      if (statusBadge) {
-        statusBadge.innerHTML = `<span style="color:#ef4444">Lỗi kết nối - Đã dùng mẫu chuẩn</span>`;
-      }
-      notify(`⚠️ Lỗi kết nối API cá nhân: ${err.message}. Đã chuyển sang Super Prompt mẫu chuẩn.`);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '✨ AI Tinh Chế Prompt (Pha 1)';
+    if (saved) {
+      resetVaultForm();
+      renderVaultKeysList();
+      syncActiveKeyDropdown();
+      notify('✔ Đã lưu API Key thành công vào Két Khóa cá nhân!');
     }
   });
 
-  // =========================================================================
-  // PHA 2: KHAI THÁC ĐỒ THỊ 3D (DIALECTIC EXTRACTION)
-  // =========================================================================
-  $('#btnExecuteAiQuery')?.addEventListener('click', async () => {
-    const apiKey = ($('#aiApiKeyInput')?.value || '').trim();
-    if (!apiKey) {
-      notify(
-        '⛔ Bạn chưa nhập API Key cá nhân để chạy tự động Pha 2. Vui lòng nhập Key ở trên hoặc bấm "📋 Chép Prompt" để hỏi trên web AI rồi dán câu trả lời vào ô bên phải.'
-      );
-      $('#aiApiKeyInput')?.focus();
-      return;
-    }
+  $('#btnCancelEditVaultKey')?.addEventListener('click', resetVaultForm);
 
-    saveUserPersonalApiKey(selectedAiProvider, apiKey);
-
-    let prompt = ($('#aiRefinedPromptBox')?.value || '').trim();
-    if (!prompt) {
-      prompt = buildAiResearchPrompt();
-      if ($('#aiRefinedPromptBox')) $('#aiRefinedPromptBox').value = prompt;
-    }
-
-    const model = ($('#aiModelInput')?.value || '').trim();
-    const btn = $('#btnExecuteAiQuery');
-    btn.disabled = true;
-    btn.textContent = '⏳ Đang khai thác đồ thị qua API cá nhân...';
-
-    try {
-      const result = await callCloudLlmWithUserKey({
-        provider: selectedAiProvider,
-        apiKey,
-        model,
-        prompt,
-      });
-      $('#aiRawResponseBox').value = result.text;
-      stagedGraphData = parseRawAiOutputToGraph(result.text, {
-        model: model || 'Gemini 3.8 Flash',
-        provider: selectedAiProvider,
-        mode: selectedAiMode,
-      });
-      renderStagingPreview();
-      notify(`✧ Pha 2 hoàn tất! Đã nhận kết quả từ ${result.provider} và bóc tách thành 7 Trụ Cột Tri Thức.`);
-    } catch (err) {
-      notify('⛔ Lỗi gọi API: ' + err.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '🚀 Khai Thác Đồ Thị (Pha 2)';
-    }
-  });
-
-  $('#btnCopyPromptAndListen')?.addEventListener('click', async () => {
-    let prompt = ($('#aiRefinedPromptBox')?.value || '').trim();
-    if (!prompt) {
-      prompt = buildAiResearchPrompt();
-      if ($('#aiRefinedPromptBox')) $('#aiRefinedPromptBox').value = prompt;
-    }
-    try {
-      await navigator.clipboard.writeText(prompt);
-    } catch (e) {}
-    notify(
-      '📋 Đã chép Super Prompt vào Clipboard! Hãy dán vào ChatGPT / Claude / Gemini Web, rồi copy kết quả dán vào ô bên phải.'
-    );
-  });
-
-  $('#btnSimulateClaudeWeakLabel')?.addEventListener('click', () => {
-    const topic = ($('#aiTopicInput')?.value || 'Weak Label').trim();
+  // 7. NẠP DỮ LIỆU MẪU TẠI GATEKEEPER
+  $('#btnGatekeeperUseSample')?.addEventListener('click', () => {
+    isGatekeeperBypassed = true;
     const sampleResponse = `### 1. Learning from Noisy & Weak Labels via Loss Correction (Patrini et al., 2017)
 - Đóng góp: Đề xuất hiệu chỉnh hàm mất mát Forward/Backward dựa trên ước lượng ma trận nhiễu T.
 - Phương pháp: Xây dựng ma trận chuyển dịch nhiễu kết hợp ước lượng điểm neo (anchor points).
@@ -846,72 +987,188 @@ export function initAiHubEvents(switchViewFn) {
 - Bằng chứng & Kết quả: Nhiễu của LLM có tính hệ thống (Systematic Hallucination), tương quan giữa các prompt lên tới 0.72.
 - Điểm gãy: Tấn công cách dùng LLM làm hàm gán nhãn yếu ngây thơ vì LLM sinh ra nhiễu có hệ thống không thể khử bằng trung bình đám đông.`;
 
-    $('#aiRawResponseBox').value = sampleResponse;
+    if ($('#aiRawResponseBox')) $('#aiRawResponseBox').value = sampleResponse;
     stagedGraphData = parseRawAiOutputToGraph(sampleResponse, {
       model: 'Mẫu Học Thuật Chuẩn',
-      provider: 'manual-paste',
+      provider: 'sample-mode',
       mode: selectedAiMode,
     });
-    stagedGraphData.lineageTitle = `Phả hệ AI: ${topic}`;
+    stagedGraphData.lineageTitle = 'Phả hệ Mẫu: Weak Label Learning & Phản Biện';
     renderStagingPreview();
-    notify('⚡ Bộ Trung Gian đã bóc tách văn bản mẫu thành 3 Bài báo (7 Trụ Cột) & Mũi tên Tấn công!');
+
+    renderAiHubTab();
+    setAiStep(3);
+    const runEl = $('#aiStep3Running');
+    if (runEl) runEl.hidden = true;
+    const doneEl = $('#aiStep3Done');
+    if (doneEl) doneEl.hidden = false;
+
+    notify('⚡ Đã nạp thành công mẫu đối kháng 7 Trụ Cột Tri Thức! Bạn có thể xem bóc tách hoặc nạp ngay vào 3D.');
   });
 
-  $('#btnParseRawToGraph')?.addEventListener('click', () => {
-    const raw = $('#aiRawResponseBox').value;
-    stagedGraphData = parseRawAiOutputToGraph(raw, {
-      model: 'Văn bản Người dùng dán',
-      provider: selectedAiProvider,
-      mode: selectedAiMode,
-    });
-    renderStagingPreview();
-    notify('⚙ Đã chuẩn hóa văn bản thô sang 7 Trụ Cột Tri Thức!');
-  });
+  // 8. BƯỚC 1: TIẾP TỤC SANG BƯỚC 2 (TINH CHẾ SUPER PROMPT - PHA 1)
+  $('#btnGoToStep2')?.addEventListener('click', async () => {
+    const activeKey = getActiveApiKeyRecord();
+    const btn = $('#btnGoToStep2');
+    btn.disabled = true;
+    btn.textContent = '⏳ Đang tinh chế Super Prompt...';
 
-  $('#btnIngestTo3D')?.addEventListener('click', () => {
-    const state = getState();
-    if (!stagedGraphData || !stagedGraphData.papers.length) {
-      const raw = $('#aiRawResponseBox').value;
-      stagedGraphData = parseRawAiOutputToGraph(raw, {
-        model: 'Văn bản Người dùng dán',
-        provider: selectedAiProvider,
-        mode: selectedAiMode,
-      });
+    const provider = activeKey?.provider || 'gemini-api';
+    const model = activeKey?.model || 'gemini-3.8-flash';
+    const apiKey = activeKey?.apiKey || '';
+
+    let prompt = '';
+    if (apiKey) {
+      try {
+        const metaPrompt = buildEpistemicMetaPrompt({
+          provider,
+          mode: selectedAiMode,
+          phenomenon: ($('#aiTopicInput')?.value || '').trim(),
+          chain: ($('#aiDecomposeChainInput')?.value || '').trim(),
+          targetPaper: ($('#aiTargetPaperInput')?.value || '').trim(),
+          targetCore: ($('#aiTargetCoreInput')?.value || '').trim(),
+          attackReq: ($('#aiAttackInstruction')?.value || '').trim(),
+        });
+        const result = await callCloudLlmWithUserKey({
+          provider,
+          apiKey,
+          model,
+          prompt: metaPrompt,
+        });
+        prompt = result.text;
+      } catch (e) {
+        prompt = buildAiResearchPrompt();
+      }
+    } else {
+      prompt = buildAiResearchPrompt();
     }
-    if (!stagedGraphData || !stagedGraphData.papers.length) {
-      notify('Chưa có dữ liệu hợp lệ trong Bộ Trung Gian để nạp.');
+
+    if ($('#aiRefinedPromptBox')) $('#aiRefinedPromptBox').value = prompt;
+
+    btn.disabled = false;
+    btn.textContent = '⚡ Bước tiếp theo: Tinh chế Super Prompt (Pha 1) ➔';
+
+    setAiStep(2);
+    notify('✨ Pha 1 hoàn tất! Bấm "👁 Xem / Sửa Super Prompt" nếu muốn đọc toàn văn hoặc bấm "🚀 Khai Thác Đồ Thị" để tiếp tục.');
+  });
+
+  // 9. BƯỚC 2: QUAY LẠI BƯỚC 1
+  $('#btnBackToStep1')?.addEventListener('click', () => {
+    setAiStep(1);
+  });
+
+  // 10. MODAL XEM / SỬA SUPER PROMPT
+  $('#btnOpenPromptModal')?.addEventListener('click', () => {
+    const modal = $('#promptViewerModal');
+    if (modal) modal.hidden = false;
+  });
+
+  const closePromptModal = () => {
+    const modal = $('#promptViewerModal');
+    if (modal) modal.hidden = true;
+  };
+
+  $('#btnClosePromptModal')?.addEventListener('click', closePromptModal);
+  $('#btnClosePromptModalBtn')?.addEventListener('click', closePromptModal);
+  $('#btnSavePromptModal')?.addEventListener('click', () => {
+    closePromptModal();
+    notify('✔ Đã lưu nội dung Super Prompt đã sửa!');
+  });
+
+  const copyPromptHandler = async () => {
+    const prompt = $('#aiRefinedPromptBox')?.value || '';
+    try {
+      await navigator.clipboard.writeText(prompt);
+      notify('📋 Đã chép Super Prompt vào Clipboard! Hãy dán vào ChatGPT / Claude / Gemini Web.');
+    } catch (e) {
+      notify('Không thể chép vào clipboard.');
+    }
+  };
+
+  $('#btnCopyPromptModal')?.addEventListener('click', copyPromptHandler);
+  $('#btnCopyPromptDirect')?.addEventListener('click', copyPromptHandler);
+
+  // 11. BƯỚC 2: KHAI THÁC ĐỒ THỊ 3D (PHA 2)
+  $('#btnExecuteAiQuery')?.addEventListener('click', async () => {
+    const activeKey = getActiveApiKeyRecord();
+    if (!activeKey || !activeKey.apiKey) {
+      notify('⛔ Bạn cần có ít nhất 1 API Key kích hoạt để chạy tự động Pha 2. Vui lòng thêm Key trong Két Khóa.');
+      openVaultModal();
       return;
     }
 
-    let targetEcoId = $('#aiTargetEcosystem')?.value;
-    if (!targetEcoId || targetEcoId === 'new') {
-      const palette = ['#0ea5e9', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b'];
-      targetEcoId = `eco-${crypto.randomUUID().slice(0, 6)}`;
-      state.ecosystems.push({
-        id: targetEcoId,
-        title: stagedGraphData.lineageTitle || `Phả hệ: ${$('#aiTopicInput').value.trim()}`,
-        description: 'Phả hệ được bóc tách và tái tổ hợp qua Bộ Trung Gian AI (7 Trụ Cột Tri Thức).',
-        color: palette[state.ecosystems.length % palette.length],
-      });
+    let prompt = ($('#aiRefinedPromptBox')?.value || '').trim();
+    if (!prompt) {
+      prompt = buildAiResearchPrompt();
+      if ($('#aiRefinedPromptBox')) $('#aiRefinedPromptBox').value = prompt;
     }
 
-    stagedGraphData.papers.forEach((p) => {
-      p.ecosystemId = targetEcoId;
-      state.sources.push(p);
-    });
-    stagedGraphData.relations.forEach((r) => {
-      state.relations.push(r);
-    });
+    setAiStep(3);
+    const runEl = $('#aiStep3Running');
+    const doneEl = $('#aiStep3Done');
+    if (runEl) runEl.hidden = false;
+    if (doneEl) doneEl.hidden = true;
 
-    sceneState.selectedLineageId = targetEcoId;
-    sceneState.isolatedFocusNodeId = null;
-    sceneState.activeNodeId = stagedGraphData.papers[0].id;
-    saveState();
-    if (typeof switchViewFn === 'function') switchViewFn('explore');
-    renderSidebarLineages(switchViewFn);
-    buildSceneGraph();
-    fitCameraToVisibleScene();
-    renderFloatingInspector();
-    notify(`⚡ Đã nạp ${stagedGraphData.papers.length} bài báo vào Không gian 3D riêng của bạn!`);
+    try {
+      const result = await callCloudLlmWithUserKey({
+        provider: activeKey.provider,
+        apiKey: activeKey.apiKey,
+        model: activeKey.model,
+        prompt,
+      });
+
+      if ($('#aiRawResponseBox')) $('#aiRawResponseBox').value = result.text;
+      stagedGraphData = parseRawAiOutputToGraph(result.text, {
+        model: activeKey.model,
+        provider: activeKey.provider,
+        mode: selectedAiMode,
+      });
+
+      renderStagingPreview();
+
+      if (runEl) runEl.hidden = true;
+      if (doneEl) doneEl.hidden = false;
+
+      const titleEl = $('#aiStep3DoneTitle');
+      if (titleEl) {
+        titleEl.textContent = `Đã Khai Thác Thành Công ${stagedGraphData.papers.length} Bài Báo & ${stagedGraphData.relations.length} Quan Hệ!`;
+      }
+      const descEl = $('#aiStep3DoneDesc');
+      if (descEl) {
+        descEl.textContent = `Bấm "Xem Bóc Tách" để kiểm tra 7 Trụ Cột Tri Thức hoặc bấm "Nạp Thẳng Vào Không Gian 3D" để khám phá ngay.`;
+      }
+
+      notify(`✧ Pha 2 hoàn tất! Đã trích xuất ${stagedGraphData.papers.length} bài báo (7 Trụ Cột) từ ${result.provider}.`);
+    } catch (err) {
+      if (runEl) runEl.hidden = true;
+      setAiStep(2);
+      notify('⛔ Lỗi gọi API cá nhân: ' + err.message);
+    }
+  });
+
+  // 12. BƯỚC 3: MỞ / ĐÓNG MODAL XEM BÓC TÁCH (STAGING MODAL)
+  $('#btnOpenStagingModal')?.addEventListener('click', () => {
+    const modal = $('#stagingViewerModal');
+    if (modal) modal.hidden = false;
+    renderStagingPreview();
+  });
+
+  const closeStagingModal = () => {
+    const modal = $('#stagingViewerModal');
+    if (modal) modal.hidden = true;
+  };
+
+  $('#btnCloseStagingModal')?.addEventListener('click', closeStagingModal);
+  $('#btnCloseStagingModalBtn')?.addEventListener('click', closeStagingModal);
+
+  // 13. NẠP VÀO KHÔNG GIAN 3D
+  $('#btnIngestTo3D')?.addEventListener('click', () => ingestStagedGraphTo3D(switchViewFn));
+  $('#btnIngestFromModal')?.addEventListener('click', () => ingestStagedGraphTo3D(switchViewFn));
+
+  // 14. RESET QUY TRÌNH (KHAI THÁC MỚI)
+  $('#btnRestartWorkflow')?.addEventListener('click', () => {
+    setAiStep(1);
+    notify('Đã đặt lại quy trình. Bạn có thể nhập đề tài hoặc bài báo mới.');
   });
 }
+
