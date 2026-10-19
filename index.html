@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Folio 3D — Không gian Phả hệ Nghiên cứu & Tái tổ hợp AI</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- =========================================================================
+         CỔNG KHÓA TRUY CẬP BẢO MẬT (ACCESS GATE OVERLAY — CHẶN 100% NGƯỜI LẠ)
+         ========================================================================= -->
+    <div id="accessGateOverlay" class="access-gate-overlay">
+      <div class="gate-card">
+        <div class="gate-brand">
+          <div class="brand-mark">◈</div>
+          <div>
+            <h1>Folio<span class="brand-dot">.3D</span> — Cổng Truy Cập Nghiên Cứu</h1>
+            <p>Hệ thống Phả hệ Nghiên cứu 3D & Tái tổ hợp Tri thức Khoa học (Giới hạn thành viên)</p>
+          </div>
+        </div>
+
+        <form id="accessLoginForm" class="gate-form">
+          <label class="field-label" style="color:#e2e8f0;margin-top:0">
+            🔑 Nhập Mã Truy Cập (Access Key) được cấp để mở không gian riêng của bạn
+          </label>
+          <input
+            id="accessKeyInput"
+            type="password"
+            class="text-field gate-input"
+            placeholder="VD: F3D.thay-huong-dan.2026-12-31.member.XXXX..."
+            autocomplete="off"
+            required
+          />
+          <div id="accessErrorMsg" class="gate-error" hidden></div>
+
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button type="submit" class="primary-button" style="flex:1;padding:10px 14px;font-size:13px">
+              🔓 Mở Khóa Không Gian Nghiên Cứu 3D
+            </button>
+            <button type="button" class="outline-button" id="btnToggleGateKeyGen" style="background:rgba(30,41,59,0.9);color:#cbd5e1;border-color:#475569">
+              ⚙ Chủ web tạo mã cấp quyền
+            </button>
+          </div>
+        </form>
+
+        <!-- Bảng Tạo Mã Có Thời Hạn ngay tại Cổng (Yêu cầu Master Secret của Chủ web) -->
+        <div id="gateAdminGeneratorPanel" class="gate-admin-panel" hidden>
+          <div style="font-size:11px;font-weight:800;color:#a5b4fc;letter-spacing:0.5px;margin-bottom:8px">
+            👑 TRÌNH TẠO MÃ TRUY CẬP CÓ THỜI HẠN (CHỈ DÀNH CHO CHỦ SỞ HỮU)
+          </div>
+          <div class="form-grid-2">
+            <div>
+              <label class="field-label" style="color:#cbd5e1;margin-top:4px">Mật khẩu Chủ sở hữu (Master Secret)</label>
+              <input id="gateMasterSecretInput" type="password" class="text-field" placeholder="Nhập Master Secret..." />
+            </div>
+            <div>
+              <label class="field-label" style="color:#cbd5e1;margin-top:4px">Tên người nhận (VD: Thầy hướng dẫn)</label>
+              <input id="genRecipientName" class="text-field" placeholder="VD: thay-huong-dan" value="thay-huong-dan" />
+            </div>
+          </div>
+
+          <div class="form-grid-2" style="margin-top:6px">
+            <div>
+              <label class="field-label" style="color:#cbd5e1;margin-top:4px">Sử dụng đến hết ngày</label>
+              <input id="genExpiryDate" type="date" class="text-field" />
+              <label style="font-size:11px;color:#94a3b8;display:inline-flex;align-items:center;gap:5px;margin-top:4px">
+                <input type="checkbox" id="genPermanentCheck" /> Không giới hạn thời gian (Vĩnh viễn)
+              </label>
+            </div>
+            <div>
+              <label class="field-label" style="color:#cbd5e1;margin-top:4px">Phân quyền</label>
+              <select id="genRoleSelect" class="text-field">
+                <option value="member">Thành viên (Không gian nghiên cứu riêng)</option>
+                <option value="admin">Quản trị viên (Có quyền cấp mã)</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="button" class="primary-button" id="btnGenerateKeyFromGate" style="width:100%;margin-top:10px">
+            ✨ Tạo Mã Bảo Mật Có Chữ Ký Số (HMAC-SHA256)
+          </button>
+
+          <div id="gateGeneratedResultWrap" style="margin-top:10px" hidden>
+            <label class="field-label" style="color:#6ee7b7;margin-top:0">✔ Mã đã tạo (Gửi mã này cho người dùng):</label>
+            <div style="display:flex;gap:6px">
+              <input id="gateGeneratedTokenOutput" class="text-field" readonly style="font-family:monospace;font-weight:700" />
+              <button type="button" class="secondary-button" id="btnCopyGateToken">📋 Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL ADMIN CẤP MÃ TRUY CẬP KHI ĐANG Ở TRONG APP
+         ========================================================================= -->
+    <div id="adminKeyModal" class="access-gate-overlay" hidden>
+      <div class="gate-card" style="max-width:540px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <h2 style="margin:0;color:#fff;font-size:16px">🔑 Cấp Mã Truy Cập Có Thời Hạn (Cho Thầy / Đồng nghiệp)</h2>
+          <button type="button" class="icon-button" id="btnCloseAdminKeyModal">✕</button>
+        </div>
+        <p style="font-size:12px;color:#94a3b8;margin:0 0 12px">
+          Mỗi người nhận mã sẽ có một <b>Không gian Đồ thị 3D riêng biệt</b> (dữ liệu của ai chỉ hiển thị cho người đó) và tự động hết hạn đúng ngày bạn chọn.
+        </p>
+
+        <div class="form-grid-2">
+          <div>
+            <label class="field-label" style="color:#cbd5e1;margin-top:4px">Định danh người dùng / Không gian</label>
+            <input id="modalGenRecipientName" class="text-field" placeholder="VD: thay-huong-dan" value="thay-huong-dan" />
+          </div>
+          <div>
+            <label class="field-label" style="color:#cbd5e1;margin-top:4px">Phân quyền</label>
+            <select id="modalGenRoleSelect" class="text-field">
+              <option value="member">Thành viên (Không gian riêng)</option>
+              <option value="admin">Quản trị viên (Admin)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:8px">
+          <label class="field-label" style="color:#cbd5e1;margin-top:4px">Thời hạn sử dụng đến hết ngày</label>
+          <input id="modalGenExpiryDate" type="date" class="text-field" />
+          <label style="font-size:11.5px;color:#cbd5e1;display:inline-flex;align-items:center;gap:6px;margin-top:6px">
+            <input type="checkbox" id="modalGenPermanentCheck" /> Cho phép truy cập vĩnh viễn
+          </label>
+        </div>
+
+        <button type="button" class="primary-button" id="btnGenerateKeyFromModal" style="width:100%;margin-top:14px">
+          ✨ Sinh Mã Truy Cập Mới
+        </button>
+
+        <div id="modalGeneratedResultWrap" style="margin-top:12px" hidden>
+          <label class="field-label" style="color:#6ee7b7;margin-top:0">Mã truy cập (Copy gửi cho người nhận):</label>
+          <div style="display:flex;gap:6px">
+            <input id="modalGeneratedTokenOutput" class="text-field" readonly style="font-family:monospace;font-weight:700" />
+            <button type="button" class="secondary-button" id="btnCopyModalToken">📋 Copy Mã</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         GIAO DIỆN CHÍNH 100VH (CHỈ MỞ KHI ĐÃ XÁC THỰC MÃ TRUY CẬP HỢP LỆ)
+         ========================================================================= -->
+    <div id="appShellMain" class="app-shell" hidden>
+      <!-- LEFT VERTICAL TABBAR -->
+      <aside class="tabbar" id="sidebar">
+        <div class="brand">
+          <div class="brand-mark" title="Folio 3D">◈</div>
+          <div class="brand-text">
+            <span>Folio<span class="brand-dot">.3D</span></span>
+            <small>Phả hệ & Tái tổ hợp AI</small>
+          </div>
+          <button class="icon-button sidebar-collapse" id="toggleSidebar" title="Thu gọn thanh bên">
+            ☰
+          </button>
+        </div>
+
+        <!-- MAIN WORKSPACE TABS -->
+        <nav class="main-tabs" aria-label="Điều hướng chính">
+          <button class="tab-btn active" data-view="explore" title="Không gian Đồ thị 3D">
+            <span class="tab-icon">🌐</span>
+            <span class="tab-copy">
+              <b>Không gian 3D</b>
+              <small>Đồ thị Phả hệ & Tấn công</small>
+            </span>
+            <span class="tab-pill" id="navNodeCount">0</span>
+          </button>
+
+          <button class="tab-btn" data-view="editor" title="Thêm tay & Chỉnh sửa Bài báo, Điều kiện, Đóng góp">
+            <span class="tab-icon">✎</span>
+            <span class="tab-copy">
+              <b>Thêm & Sửa Bài báo</b>
+              <small>Tri thức, Điều kiện & Cạnh</small>
+            </span>
+            <span class="tab-pill" id="navPaperCount">0</span>
+          </button>
+
+          <button class="tab-btn" data-view="ai-hub" title="Bóc tách & Tái tổ hợp bằng AI (Key cá nhân)">
+            <span class="tab-icon">✦</span>
+            <span class="tab-copy">
+              <b>AI & Bộ Trung Gian</b>
+              <small>API Cá nhân ➔ Nạp 3D</small>
+            </span>
+            <span class="tab-pill ai-pill">BYOK</span>
+          </button>
+
+          <button class="tab-btn" data-view="matrix" title="Ma trận đối chiếu điều kiện và tìm khe hở nghiên cứu">
+            <span class="tab-icon">⌑</span>
+            <span class="tab-copy">
+              <b>Ma trận & Khe hở</b>
+              <small>Phân tầng màu sắc</small>
+            </span>
+            <span class="tab-pill gap-pill" id="navGapCount">0</span>
+          </button>
+        </nav>
+
+        <!-- QUICK LINEAGE FOCUS SELECTOR -->
+        <div class="sidebar-section">
+          <div class="section-head">
+            <span>CÔ LẬP PHẢ HỆ TRÊN 3D</span>
+            <button class="tiny-btn-icon" id="btnAddEcosystem" title="Tạo Phả hệ nghiên cứu mới">＋</button>
+          </div>
+          <small class="sidebar-hint">Chọn 1 phả hệ để chỉ hiện phả hệ đó & các bài liên quan</small>
+          <div id="sidebarLineageList" class="lineage-list"></div>
+        </div>
+
+        <!-- BOTTOM SESSION & STORAGE CONTROLS -->
+        <div class="sidebar-bottom">
+          <div id="activeUserBadge" class="user-session-box"></div>
+          <div style="display:flex;gap:4px;margin-bottom:6px">
+            <button id="btnOpenAdminKeyModal" class="secondary-button tiny-btn" style="flex:1" hidden>
+              🔑 Cấp Mã
+            </button>
+            <button id="btnLogoutSession" class="outline-button tiny-btn" style="flex:1;background:rgba(255,255,255,0.08);color:#fca5a5;border-color:rgba(248,113,113,0.3)">
+              Đăng xuất
+            </button>
+          </div>
+          <div class="storage-meter">
+            <span class="status-dot green-status"></span>
+            <span id="storageStatsText">Đang tải...</span>
+          </div>
+          <div class="side-footer">
+            <button id="btnResetDemo" title="Khôi phục dữ liệu mẫu (Weak Label, RAG...)">Mẫu gốc</button>
+            <button id="btnExportQuick" title="Xuất file JSON để lưu lên Google Drive">Xuất JSON</button>
+            <button id="btnImportQuick" title="Nhập file JSON">Nhập</button>
+            <input id="fileImportQuick" type="file" accept=".json" hidden />
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN VIEWPORT (100VH, NO PAGE SCROLL) -->
+      <main class="viewport-area">
+        <!-- ===================================================================
+             VIEW 1: 100% FULLSCREEN 3D GRAPH STAGE
+             =================================================================== -->
+        <section id="viewExplore" class="view-pane active-pane">
+          <div class="graph-stage dark-stage" id="graphStage">
+            <canvas id="graphCanvas"></canvas>
+
+            <!-- TOP FLOATING HUD -->
+            <div class="hud-top-bar">
+              <div class="hud-group">
+                <span class="hud-label">PHẢ HỆ:</span>
+                <select id="hudLineageSelect" class="hud-select" title="Chỉ hiển thị phả hệ được chọn"></select>
+                <button class="hud-btn highlight-btn" id="btnIsolateSelectedNode" title="Chỉ hiện bài báo đang chọn + các bài con kế thừa + các bài tấn công/bác bỏ nó">
+                  🎯 Cô lập Nhánh của Bài đang chọn
+                </button>
+                <button class="hud-btn" id="btnShowAllLineages" hidden>
+                  🌌 Hiện tất cả Phả hệ
+                </button>
+              </div>
+
+              <div class="hud-group">
+                <span class="hud-label">TẦNG 3D:</span>
+                <button class="hud-btn" id="btnToggleReasoning3D" title="Bật/tắt chuỗi suy luận và câu hỏi nghiên cứu ngay trong không gian 3D">
+                  ⛓ Chuỗi Suy Luận 3D
+                </button>
+                <button class="hud-btn" id="btnOpenQuestionPopover" title="Quản lý hoặc xóa câu hỏi nghiên cứu sai (vẫn giữ nguyên Phả hệ)">
+                  ❓ Câu hỏi & Xóa câu hỏi sai
+                </button>
+                <button class="hud-btn" id="btnToggleProblems3D" title="Bật/tắt nút Vấn đề chung của hệ sinh thái trong 3D">
+                  ⬢ Vấn đề chung
+                </button>
+                <button class="hud-btn active" id="btnToggleGaps3D" title="Hiển thị các nút Khe hở nghiên cứu (◇) trong 3D">
+                  ◇ Khe hở (Gaps)
+                </button>
+                <button class="hud-btn" id="btnToggleMicro3D" title="Bung chuỗi suy luận nội tại của bài báo đang chọn thành các vệ tinh 3D">
+                  🔬 Vệ tinh Điều kiện
+                </button>
+                <button class="hud-btn" id="btnStart3DLink" title="Click 2 bài báo trên 3D để nối mũi tên Kế thừa / Tấn công">
+                  🔗 Nối mũi tên 3D
+                </button>
+              </div>
+            </div>
+
+            <!-- LEFT VERTICAL 3D CAMERA VIEWPOINT RAIL -->
+            <div class="hud-viewpoint-rail" aria-label="Góc nhìn không gian 3D">
+              <span class="rail-title">GÓC 3D</span>
+              <button class="viewpoint-btn active" id="camViewPerspective" title="Góc nhìn phối cảnh khối 3D đa tầng">
+                🧊 Khối 3D
+              </button>
+              <button class="viewpoint-btn" id="camViewFront" title="Nhìn thẳng trực diện: Tầng bài tấn công (trên) - Phả hệ chính (giữa) - Khe hở (dưới)">
+                👁 Chính diện
+              </button>
+              <button class="viewpoint-btn" id="camViewTop" title="Nhìn từ đỉnh xuống toàn cảnh mặt phẳng X-Z">
+                ⬇ Từ đỉnh
+              </button>
+              <button class="viewpoint-btn" id="camViewSide" title="Nhìn cắt ngang chiều sâu trục Z-Y">
+                ➡ Cắt ngang
+              </button>
+              <div class="viewpoint-divider"></div>
+              <button class="viewpoint-btn orbit-toggle" id="btnAutoOrbit" title="Tự động xoay 360 độ quanh khối phả hệ 3D">
+                ↻ Xoay 360°
+              </button>
+            </div>
+
+            <!-- FLOATING QUESTION & REASONING POPOVER -->
+            <div class="hud-question-popover" id="questionPopover" hidden>
+              <div class="popover-head">
+                <div>
+                  <span class="eyebrow" style="color:#a5b4fc">CÂU HỎI & CHUỖI SUY LUẬN TRONG 3D</span>
+                  <select id="popoverQuestionSelect" class="hud-select" style="width:100%;margin-top:4px"></select>
+                </div>
+                <button class="icon-button" id="btnCloseQuestionPopover">✕</button>
+              </div>
+              <p id="popoverQuestionHyp" class="popover-sub"></p>
+              <div id="popoverStepsList" class="popover-steps"></div>
+              <div class="popover-actions">
+                <button class="hud-btn" id="btnAddStepQuick">＋ Thêm bước suy luận</button>
+                <button class="hud-btn" id="btnNewQuestionQuick">＋ Câu hỏi mới</button>
+                <button class="hud-btn" style="background:rgba(239,68,68,0.25);color:#fca5a5;border-color:rgba(239,68,68,0.5)" id="btnDeleteWrongQuestion3D">
+                  🗑 Xóa câu hỏi sai (Giữ Phả hệ)
+                </button>
+              </div>
+            </div>
+
+            <!-- BOTTOM FLOATING HUD -->
+            <div class="hud-bottom-bar">
+              <div class="hud-arrows" id="relationTypeFilterBar">
+                <button class="arrow-chip active" data-relation="lineage" title="Mũi tên Phả hệ / Kế thừa">
+                  <i class="line-dot lineage-dot"></i> 🧬 Kế thừa <span id="count-lineage">0</span>
+                </button>
+                <button class="arrow-chip active" data-relation="refute" title="Mũi tên Tấn công / Bác bỏ làm sụp đổ điều kiện bài trước">
+                  <i class="line-dot refute-dot"></i> ✕ Tấn công / Bác bỏ <span id="count-refute">0</span>
+                </button>
+                <button class="arrow-chip active" data-relation="conflict" title="Mũi tên Tương khắc">
+                  <i class="line-dot conflict-dot"></i> ⚡ Tương khắc <span id="count-conflict">0</span>
+                </button>
+                <button class="arrow-chip active" data-relation="support" title="Mũi tên Hỗ trợ / Củng cố">
+                  <i class="line-dot support-dot"></i> ↗ Hỗ trợ <span id="count-support">0</span>
+                </button>
+                <button class="arrow-chip active" data-relation="condition" title="Mũi tên Ràng buộc điều kiện">
+                  <i class="line-dot condition-dot"></i> ⌑ Điều kiện <span id="count-condition">0</span>
+                </button>
+                <button class="arrow-chip active" data-relation="gap" title="Nút & Cạnh Khe hở nghiên cứu">
+                  <i class="line-dot gap-dot"></i> ◇ Khe hở <span id="count-gap">0</span>
+                </button>
+              </div>
+
+              <div class="hud-camera-controls">
+                <div class="layout-pills" role="group">
+                  <button class="layout-pill active" data-layout="lineage" title="Bố cục khối 3D phân tầng (Bài tấn công ở tầng đỉnh, Phả hệ ở tầng giữa, Khe hở ở tầng đáy)">
+                    🧬 Khối Phân Tầng 3D
+                  </button>
+                  <button class="layout-pill" data-layout="helix" title="Bố cục Cầu Xoắn 3D (Xoay 360 độ nhìn rõ mọi mặt)">
+                    🌀 Cầu Xoắn 3D
+                  </button>
+                  <button class="layout-pill" data-layout="force" title="Bố cục Lực đẩy vật lý 3 chiều">
+                    ⚛ Lực 3D
+                  </button>
+                </div>
+                <button class="hud-icon-btn" id="btnSpreadMore" title="Giãn rộng khoảng cách giữa các bài báo hơn nữa">↔ Giãn rộng</button>
+                <button class="hud-icon-btn" id="fitGraph" title="Căn vừa khung nhìn">⊡ Vừa khung</button>
+                <button class="hud-icon-btn" id="resetGraph" title="Đặt lại góc nhìn 3D">↺</button>
+                <button class="hud-icon-btn" id="btnTheme3D" title="Đổi nền Đêm / Sáng">◐</button>
+              </div>
+            </div>
+
+            <!-- FLOATING RIGHT INSPECTOR DRAWER -->
+            <aside class="floating-inspector" id="floatingInspector">
+              <div class="inspector-Collapse-bar">
+                <span class="node-type-badge" id="inspectorHeaderTag">CHI TIẾT NÚT 3D</span>
+                <div style="display:flex;gap:6px">
+                  <button class="hud-btn" id="btnJumpEditTab" title="Mở bài báo này trong tab Chỉnh sửa">✎ Sửa bài này</button>
+                  <button class="icon-button" id="btnCloseInspector" title="Thu gọn bảng chi tiết">✕</button>
+                </div>
+              </div>
+              <div class="inspector-scroll-body" id="inspectorBody"></div>
+            </aside>
+
+            <!-- 3D LINKING BANNER -->
+            <div id="linkModeBanner" class="link-mode-banner" hidden>
+              <span id="linkModeText">Đang bật nối mũi tên 3D: Click bài báo nguồn ➔ Click bài báo đích</span>
+              <button class="tiny-cancel" id="btnCancelLinkMode">Hủy</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             VIEW 2: PAPER & CONTRIBUTION EDITOR
+             =================================================================== -->
+        <section id="viewEditor" class="view-pane" hidden>
+          <div class="split-workspace">
+            <div class="editor-list-pane">
+              <div class="pane-head">
+                <div>
+                  <span class="eyebrow">DANH SÁCH TRONG HỆ SINH THÁI (<span id="editorPaperCount">0</span>)</span>
+                  <h2>Chọn hoặc Thêm Bài báo</h2>
+                </div>
+                <button class="primary-button" id="btnCreateNewPaper">＋ Bài báo mới</button>
+              </div>
+
+              <div class="pane-filter-row">
+                <input id="editorSearchInput" class="text-field" placeholder="🔍 Tìm tên bài báo, tác giả, điều kiện..." />
+                <select id="editorEcoFilter" class="text-field" style="max-width:165px">
+                  <option value="all">Tất cả Phả hệ</option>
+                </select>
+              </div>
+
+              <div id="editorPaperList" class="scrollable-list"></div>
+            </div>
+
+            <div class="editor-form-pane">
+              <div class="pane-head">
+                <div>
+                  <span class="eyebrow">CHỈNH SỬA TRI THỨC & ĐIỀU KIỆN BÀI BÁO</span>
+                  <h2 id="editorFormHeading">Chỉnh sửa Bài báo</h2>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="secondary-button" id="btnViewCurrentIn3D">🎯 Xem & Cô lập trên 3D</button>
+                  <button class="primary-button" id="btnSavePaperEditor">💾 Lưu Bài Báo</button>
+                </div>
+              </div>
+
+              <!-- 4-STEP COLOR-CODED SEGMENTED SUB-TABS -->
+              <div class="editor-subtabs" role="tablist">
+                <button type="button" class="subtab-btn active" data-subtab="tab-core">
+                  <span class="subtab-dot dot-core"></span>
+                  1. 💡 Thông tin & Đóng góp
+                </button>
+                <button type="button" class="subtab-btn" data-subtab="tab-cond">
+                  <span class="subtab-dot dot-cond"></span>
+                  2. ⚖️ Điều kiện & Điểm gãy
+                  <span class="subtab-count" id="subtabCondCount">0</span>
+                </button>
+                <button type="button" class="subtab-btn" data-subtab="tab-links">
+                  <span class="subtab-dot dot-links"></span>
+                  3. 🧬 Mũi tên Phả hệ & Tấn công
+                  <span class="subtab-count" id="subtabRelCount">0</span>
+                </button>
+                <button type="button" class="subtab-btn" data-subtab="tab-chain">
+                  <span class="subtab-dot dot-chain"></span>
+                  4. ⛓ Chuỗi suy luận
+                  <span class="subtab-count" id="subtabChainCount">0</span>
+                </button>
+              </div>
+
+              <div class="scrollable-form" id="paperEditorForm">
+                <input type="hidden" id="editPaperId" />
+
+                <!-- SUBTAB 1 -->
+                <div class="subtab-panel" id="subtab-tab-core">
+                  <div class="colored-section-card card-theme-green">
+                    <div class="colored-card-head">
+                      <span class="step-badge badge-green">PHẦN 1 · ĐỊNH DANH & ĐÓNG GÓP</span>
+                      <b>Thông tin cơ bản & Tri thức cốt lõi bạn hiểu về bài báo</b>
+                    </div>
+
+                    <div class="form-grid-2">
+                      <div>
+                        <label class="field-label">Tiêu đề bài báo *</label>
+                        <input id="editPaperTitle" class="text-field" placeholder="VD: Snorkel: Rapid Training Data Creation with Weak Supervision" />
+                      </div>
+                      <div class="form-grid-3">
+                        <div>
+                          <label class="field-label">Tác giả</label>
+                          <input id="editPaperAuthors" class="text-field" placeholder="Ratner et al." />
+                        </div>
+                        <div>
+                          <label class="field-label">Năm</label>
+                          <input id="editPaperYear" type="number" class="text-field" value="2024" />
+                        </div>
+                        <div>
+                          <label class="field-label">Hội nghị / Nguồn</label>
+                          <input id="editPaperVenue" class="text-field" placeholder="NeurIPS / ICML" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                      <div>
+                        <label class="field-label">Thuộc Phả hệ Nghiên cứu (Ecosystem) *</label>
+                        <select id="editPaperEcosystem" class="text-field"></select>
+                      </div>
+                      <div>
+                        <label class="field-label">Giải quyết Vấn đề chung nào?</label>
+                        <select id="editPaperProblem" class="text-field"></select>
+                      </div>
+                    </div>
+
+                    <label class="field-label">💡 Đóng góp & Tri thức cốt lõi của bài báo *</label>
+                    <textarea id="editPaperCore" class="text-area" rows="4" placeholder="Ghi lại đóng góp cốt lõi, cơ chế hoặc phát hiện quan trọng nhất của bài báo này..."></textarea>
+                  </div>
+
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+                    <button type="button" class="danger-outline-button" id="btnDeleteCurrentPaper">🗑 Xóa bài báo này</button>
+                    <span style="font-size:11px;color:#64748b">Mẹo: Chuyển sang Tab 2 ở trên để chỉnh Điều kiện & Điểm gãy</span>
+                  </div>
+                </div>
+
+                <!-- SUBTAB 2 -->
+                <div class="subtab-panel" id="subtab-tab-cond" hidden>
+                  <div class="colored-section-card card-theme-amber">
+                    <div class="colored-card-head">
+                      <span class="step-badge badge-amber">ĐIỀU KIỆN TỒN TẠI</span>
+                      <b>⚖️ Khi nào bài báo này ĐÚNG? (Giả định dữ liệu, mô hình, môi trường)</b>
+                      <button type="button" class="secondary-button tiny-btn" id="btnAddCondRowEditor" style="margin-left:auto">
+                        ＋ Thêm điều kiện
+                      </button>
+                    </div>
+                    <p class="subtab-hint">Mỗi dòng là một điều kiện biên bắt buộc để kết luận của bài báo có hiệu lực.</p>
+                    <div id="editPaperConditions" class="conditions-rows"></div>
+                  </div>
+
+                  <div class="colored-section-card card-theme-red" style="margin-top:14px">
+                    <div class="colored-card-head">
+                      <span class="step-badge badge-red">ĐIỂM GÃY / BỊ TẤN CÔNG</span>
+                      <b>⚠️ Khi nào bài báo này SAI hoặc SỤP ĐỔ?</b>
+                    </div>
+                    <p class="subtab-hint">Ghi rõ trường hợp làm mô hình/lập luận của bài báo thất bại (để làm cơ sở nối mũi tên Tấn công / Bác bỏ).</p>
+                    <textarea id="editPaperLimits" class="text-area" rows="3" placeholder="VD: Sụp đổ hoàn toàn khi các hàm gán nhãn yếu có nhiễu tương quan (correlated noise) hoặc dữ liệu lệch đuôi dài..."></textarea>
+                  </div>
+                </div>
+
+                <!-- SUBTAB 3 -->
+                <div class="subtab-panel" id="subtab-tab-links" hidden>
+                  <div class="colored-section-card card-theme-purple">
+                    <div class="colored-card-head">
+                      <span class="step-badge badge-purple">MŨI TÊN TƯƠNG TÁC 3D</span>
+                      <b>🧬 Liên kết Phả hệ, Kế thừa hoặc Tấn công / Bác bỏ</b>
+                    </div>
+                    <p class="subtab-hint">Tạo mũi tên 3D từ bài báo này tới các bài báo khác trong hệ sinh thái.</p>
+
+                    <div class="add-rel-inline">
+                      <select id="inlineRelDirection" class="text-field">
+                        <option value="out">Bài này tác động tới ➔</option>
+                        <option value="in">⬅ Bài khác tác động vào bài này</option>
+                      </select>
+                      <select id="inlineRelType" class="text-field">
+                        <option value="lineage">🧬 Kế thừa / Phát triển (Phả hệ)</option>
+                        <option value="refute">✕ Tấn công / Bác bỏ (Chỉ ra bài kia sai)</option>
+                        <option value="conflict">⚡ Tương khắc (Trái ngược kết quả)</option>
+                        <option value="support">↗ Hỗ trợ / Củng cố</option>
+                        <option value="condition">⌑ Bổ sung Điều kiện biên</option>
+                      </select>
+                      <select id="inlineRelTarget" class="text-field"></select>
+                      <input id="inlineRelNote" class="text-field" placeholder="Lý do / Điều kiện tấn công hoặc kế thừa..." />
+                      <button type="button" class="primary-button tiny-btn" id="btnAddInlineRel">＋ Thêm cạnh</button>
+                    </div>
+
+                    <div id="editPaperRelationsList" style="margin-top:12px"></div>
+                  </div>
+                </div>
+
+                <!-- SUBTAB 4 -->
+                <div class="subtab-panel" id="subtab-tab-chain" hidden>
+                  <div class="colored-section-card card-theme-blue">
+                    <div class="colored-card-head">
+                      <span class="step-badge badge-blue">CHUỖI SUY LUẬN NỘI TẠI</span>
+                      <b>⛓ Các bước lập luận bên trong bài báo (Vấn đề ➔ Điều kiện ➔ Phương pháp ➔ Kết luận)</b>
+                      <button type="button" class="secondary-button tiny-btn" id="btnAddChainRowEditor" style="margin-left:auto">
+                        ＋ Thêm bước
+                      </button>
+                    </div>
+                    <p class="subtab-hint">Khi bật nút "🔬 Vệ tinh Điều kiện" trên không gian 3D, các bước này sẽ bay quanh bài báo.</p>
+                    <div id="editPaperInternalChain" class="conditions-rows"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             VIEW 3: AI HUB & INTERMEDIATE FORMATTER (CLOUD BYOK — KEY CÁ NHÂN)
+             =================================================================== -->
+        <section id="viewAiHub" class="view-pane" hidden>
+          <div class="split-workspace ai-workspace">
+            <!-- LEFT: CLOUD BYOK AI CONNECTOR -->
+            <div class="ai-request-pane">
+              <div class="pane-head">
+                <div>
+                  <span class="eyebrow">KẾT NỐI TRỰC TIẾP LLM (KEY CÁ NHÂN — BYOK)</span>
+                  <h2>Tra cứu Phả hệ & Lỗ hổng bằng AI</h2>
+                </div>
+                <span class="status-pill" id="aiBridgeStatusBadge">🔒 Key của ai người đó dùng</span>
+              </div>
+
+              <div class="scrollable-form">
+                <div class="ai-provider-select-wrap">
+                  <label class="field-label" style="margin-top:0">1. Chọn Mô hình / Phương thức Kết nối LLM</label>
+                  <select id="aiProviderDropdown" class="text-field provider-select-dropdown">
+                    <option value="gemini-api">✨ Google AI Studio — Gemini API (Key cá nhân)</option>
+                    <option value="openai-api">🧠 OpenAI — ChatGPT / GPT-4o API (Key cá nhân)</option>
+                    <option value="claude-api">🤖 Anthropic — Claude API (Key cá nhân)</option>
+                    <option value="manual-paste">📋 Không có API Key — Chỉ tạo Prompt chuẩn & Dán thủ công</option>
+                  </select>
+                  <small id="aiProviderHint" class="provider-desc-hint">
+                    Gọi trực tiếp Gemini bằng API Key cá nhân của bạn. Key chỉ lưu trên trình duyệt của bạn, không dùng chung với người khác.
+                  </small>
+                </div>
+
+                <!-- API KEY CONFIG (BYOK) -->
+                <div id="apiConfigBox" class="api-config-box">
+                  <div class="form-grid-2">
+                    <div>
+                      <label class="field-label" style="margin-top:0">🔑 API Key cá nhân của bạn *</label>
+                      <input id="aiApiKeyInput" type="password" class="text-field" placeholder="Dán API Key cá nhân của bạn..." />
+                    </div>
+                    <div>
+                      <label class="field-label" style="margin-top:0">Tên Model</label>
+                      <input id="aiModelInput" class="text-field" value="gemini-2.5-flash" />
+                    </div>
+                  </div>
+                </div>
+
+                <label class="field-label">2. Vấn đề cần tra cứu *</label>
+                <div class="form-grid-2">
+                  <input id="aiTopicInput" class="text-field" value="Weak Label (Học từ Nhãn yếu & Nhiễu)" placeholder="VD: Weak Label Learning, Graph RAG, Causal Inference..." />
+                  <select id="aiTargetEcosystem" class="text-field">
+                    <option value="new">✨ Tự tạo Phả hệ mới theo vấn đề tra cứu</option>
+                  </select>
+                </div>
+
+                <label class="field-label">3. Yêu cầu cụ thể (Tìm bài gốc, bài kế thừa, bài tấn công & khe hở)</label>
+                <textarea id="aiCustomInstruction" class="text-area" rows="3">Hãy tìm chuỗi bài báo phả hệ (từ bài gốc nền tảng -> các bài kế thừa -> các bài báo tấn công/bác bỏ chỉ ra điều kiện làm bài gốc bị sai) và chỉ ra khe hở nghiên cứu. Trích xuất rõ Điều kiện tồn tại và Điểm gãy của từng bài.</textarea>
+
+                <div class="ai-action-buttons">
+                  <button class="primary-button" id="btnExecuteAiQuery">
+                    🚀 Gọi AI bằng API Key cá nhân
+                  </button>
+                  <button class="secondary-button" id="btnCopyPromptAndListen" title="Copy lệnh Prompt chuẩn để hỏi trên web AI rồi dán vào Bộ Trung Gian">
+                    📋 Chép Lệnh Prompt Chuẩn
+                  </button>
+                  <button class="outline-button" id="btnSimulateClaudeWeakLabel" title="Xem thử cách Bộ Trung Gian bóc tách văn bản AI thành Đồ thị 3D">
+                    ⚡ Xem mẫu chuẩn hóa
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: INTERMEDIATE FORMATTER & STAGING PREVIEW -->
+            <div class="ai-formatter-pane">
+              <div class="pane-head">
+                <div>
+                  <span class="eyebrow">BỘ TRUNG GIAN CHUẨN HÓA (INTERMEDIATE FORMATTER)</span>
+                  <h2>Biên dịch Văn bản / JSON của AI ➔ Nút & Mũi tên 3D</h2>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="secondary-button" id="btnParseRawToGraph">⚙ Chuẩn hóa văn bản thô</button>
+                  <button class="primary-button" id="btnIngestTo3D">⚡ Nạp thẳng vào Không gian 3D</button>
+                </div>
+              </div>
+
+              <div class="scrollable-form">
+                <label class="field-label" style="margin-top:0">
+                  Dữ liệu thô từ AI (Hỗ trợ cả JSON lẫn văn bản Markdown tự do — Người không có API Key có thể dán trực tiếp vào đây):
+                </label>
+                <textarea id="aiRawResponseBox" class="text-area mono-area" rows="6" placeholder="Khi bạn gọi API cá nhân hoặc dán câu trả lời từ khung chat AI vào đây, Bộ Trung Gian sẽ tự động bóc tách thành: Bài báo, Đóng góp cốt lõi, Điều kiện tồn tại, Điểm gãy và các Mũi tên Phả hệ / Tấn công..."></textarea>
+
+                <div class="staging-preview-box" id="stagingPreviewBox">
+                  <div class="staging-empty">
+                    Chưa có dữ liệu trong Bộ Trung Gian. Hãy nhập <b>API Key cá nhân</b> rồi bấm <b>"🚀 Gọi AI"</b>, hoặc dán văn bản AI vào ô trên.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             VIEW 4: CONDITION MATRIX & RESEARCH GAPS
+             =================================================================== -->
+        <section id="viewMatrix" class="view-pane" hidden>
+          <div class="matrix-scroll-container" id="matrixContainer"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
