@@ -31,7 +31,7 @@ export async function onRequestPost(context) {
         },
         body: JSON.stringify({
           model: cleanModel,
-          max_tokens: 3500,
+          max_tokens: 4096,
           messages: [{ role: 'user', content: prompt }],
         }),
       });

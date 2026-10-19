@@ -90,6 +90,69 @@ export function syncActiveKeyDropdown() {
   keySelect.value = activeId || keys[0]?.id || '';
 }
 
+export const JSON_SCHEMA_EXAMPLE = `{
+  "lineageTitle": "Phả hệ: [Tên đề tài ngắn gọn]",
+  "papers": [
+    {
+      "tempId": "p1",
+      "title": "[Tên bài báo học thuật chuẩn quốc tế đầy đủ bằng tiếng Anh]",
+      "authors": "[Tác giả chính (VD: Ratner et al.)]",
+      "year": 2016,
+      "venue": "[NeurIPS / ICML / ICLR / ACL / Nature / IEEE]",
+      "coreKnowledge": "[Trụ cột 1: Đóng góp & phát hiện cốt lõi, 1-2 câu súc tích]",
+      "methodPipeline": "[Trụ cột 2: Quy trình phương pháp luận từ vấn đề đến giải pháp]",
+      "conditions": [
+        { "category": "method", "factor": "[Tên giả định/điều kiện]", "value": "[Điều kiện cụ thể để bài báo đúng]" }
+      ],
+      "materials": "[Trụ cột 4: Tập dữ liệu, benchmark và quy mô thực nghiệm]",
+      "evidence": "[Trụ cột 5: Kết quả thực nghiệm và số liệu đo lường cụ thể]",
+      "limitations": "[Trụ cột 6: Điểm gãy suy luận - khi nào bài báo bị sai hoặc sụp đổ]"
+    },
+    {
+      "tempId": "p2",
+      "title": "[Tên bài báo phát triển/kế thừa/bảo vệ p1]",
+      "authors": "[Tác giả]",
+      "year": 2019,
+      "venue": "[ICML]",
+      "coreKnowledge": "[Trụ cột 1: Đóng góp mở rộng hoặc củng cố p1]",
+      "methodPipeline": "[Trụ cột 2: Phương pháp]",
+      "conditions": [{ "category": "environment", "factor": "Miền kiểm thử", "value": "Điều kiện" }],
+      "materials": "[Trụ cột 4: Dataset]",
+      "evidence": "[Trụ cột 5: Kết quả]",
+      "limitations": "[Trụ cột 6: Hạn chế]"
+    },
+    {
+      "tempId": "p3",
+      "title": "[Tên bài báo TẤN CÔNG / BÁC BỎ TRỰC DIỆN p1 hoặc p2]",
+      "authors": "[Tác giả tấn công]",
+      "year": 2021,
+      "venue": "[NeurIPS]",
+      "coreKnowledge": "[Chỉ ra p1 sai lầm khi vi phạm điều kiện X]",
+      "methodPipeline": "[Thiết kế đòn tấn công phản bác]",
+      "conditions": [{ "category": "data", "factor": "Nhiễu tương quan", "value": "Điều kiện gây sụp đổ" }],
+      "materials": "[Benchmark đối kháng]",
+      "evidence": "[Tỷ lệ lỗi tăng vọt khi bị tấn công]",
+      "limitations": "[Hạn chế bài tấn công]"
+    }
+  ],
+  "relations": [
+    {
+      "from": "p2",
+      "to": "p1",
+      "type": "lineage",
+      "label": "Kế thừa và mở rộng giả định của p1",
+      "conditionNote": "Mở rộng giả định"
+    },
+    {
+      "from": "p3",
+      "to": "p1",
+      "type": "refute",
+      "label": "TẤN CÔNG: Bác bỏ p1 dưới điều kiện tương quan ẩn",
+      "conditionNote": "Điều kiện gây sụp đổ"
+    }
+  ]
+}`;
+
 export function buildEpistemicMetaPrompt({ provider, mode, phenomenon, chain, targetPaper, targetCore, attackReq }) {
   if (mode === 'decompose') {
     return [
@@ -101,19 +164,18 @@ export function buildEpistemicMetaPrompt({ provider, mode, phenomenon, chain, ta
       `- Chuỗi phân rã suy luận thô:`,
       chain,
       ``,
-      `YÊU CẦU TINH CHẾ SUPER PROMPT:`,
-      `1. Tinh chỉnh các bước suy luận thành các câu hỏi học thuật nghiêm ngặt (Phenomenological & Epistemic Deconstruction).`,
-      `2. Yêu cầu mô hình tra cứu văn hiến bình duyệt thực tế (NeurIPS, ICML, ICLR, ACL, KDD, Nature, IEEE) chứng minh hoặc phản biện chuỗi này.`,
-      `3. Bắt buộc mô hình trích xuất đầy đủ 7 TRỤ CỘT TRI THỨC KHOA HỌC:`,
-      `   - Trụ cột 1: Đóng góp & Tuyên bố cốt lõi (coreKnowledge)`,
-      `   - Trụ cột 2: Quá trình xây dựng phương pháp luận (methodPipeline)`,
-      `   - Trụ cột 3: Điều kiện bắt buộc tồn tại (conditions: category, factor, value)`,
-      `   - Trụ cột 4: Nguyên liệu, tập dữ liệu & quy mô thực nghiệm (materials)`,
-      `   - Trụ cột 5: Bằng chứng thực nghiệm & kết quả (evidence)`,
-      `   - Trụ cột 6: Điểm gãy suy luận & giới hạn sụp đổ khi bị tấn công (limitations)`,
-      `   - Trụ cột 7: Mối quan hệ phả hệ biện chứng (relations: refute, lineage, support, conflict)`,
-      `4. Chỉ ra ít nhất 1 Khe hở nghiên cứu (Research Gap ◇) còn bỏ ngỏ.`,
-      `5. Cấu trúc output dưới dạng JSON chuẩn.`,
+      `YÊU CẦU BẮT BUỘC ĐỐI VỚI SUPER PROMPT ĐƯỢC SINH RA:`,
+      `1. Phải yêu cầu mô hình tra cứu văn hiến bình duyệt thực tế (NeurIPS, ICML, ICLR, ACL, KDD, Nature, IEEE).`,
+      `2. BẮT BUỘC phải yêu cầu tìm ít nhất 3 đến 4 BÀI BÁO THẬT ĐỐI LẬP NHAU TRONG PHẢ HỆ:`,
+      `   - Ít nhất 1 bài báo nền móng (Foundation - p1).`,
+      `   - Ít nhất 1 bài báo kế thừa / phát triển (Defense / Extension - p2).`,
+      `   - Ít nhất 1-2 bài báo TẤN CÔNG / BÁC BỎ TRỰC DIỆN (Attacker / Refutation - p3, p4) chỉ ra điều kiện cụ thể làm sụp đổ phương pháp của bài trước.`,
+      `3. BẮT BUỘC mô hình trích xuất đầy đủ 7 TRỤ CỘT TRI THỨC KHOA HỌC cho TỪNG BÀI BÁO (coreKnowledge, methodPipeline, conditions, materials, evidence, limitations).`,
+      `4. BẮT BUỘC YÊU CẦU MÔ HÌNH TRẢ VỀ DUY NHẤT 1 KHỐI JSON THEO ĐÚNG CẤU TRÚC SAU:`,
+      `\`\`\`json`,
+      JSON_SCHEMA_EXAMPLE,
+      `\`\`\``,
+      `5. BẮT BUỘC GHI RÕ TRONG PROMPT: Tuyệt đối không trả về các key tự do như 'researchProblem' hay 'audit'. Mọi bài báo BẮT BUỘC phải là một phần tử độc lập nằm trong mảng "papers" và có ít nhất 1 quan hệ "refute" trong mảng "relations".`,
       ``,
       `HÃY TRẢ VỀ DUY NHẤT TOÀN VĂN NỘI DUNG "SUPER PROMPT" ĐÃ TINH CHẾ ĐỂ THỰC THI NGAY. KHÔNG THÊM LỜI CHÀO HỎI HOẶC GIẢI THÍCH DƯ THỪA.`,
     ].join('\n');
@@ -129,12 +191,18 @@ export function buildEpistemicMetaPrompt({ provider, mode, phenomenon, chain, ta
     `- Đóng góp tuyên bố: "${targetCore}"`,
     `- Yêu cầu tấn công/phòng thủ: "${attackReq}"`,
     ``,
-    `YÊU CẦU TINH CHẾ SUPER PROMPT:`,
-    `1. Yêu cầu mô hình định vị chính xác bài báo gốc cùng các giả định biên và điểm yếu chí mạng của nó.`,
-    `2. Yêu cầu mô hình tìm các bài báo hậu bối củng cố/kế thừa (Defense/Lineage) và các bài báo TẤN CÔNG / BÁC BỎ TRỰC DIỆN (Attacker/Refutation) chỉ ra điều kiện cụ thể làm sụp đổ phương pháp của bài gốc.`,
-    `3. Trích xuất đầy đủ 7 TRỤ CỘT TRI THỨC KHOA HỌC cho mỗi bài báo (Đóng góp, Phương pháp, Điều kiện, Nguyên liệu, Bằng chứng, Điểm gãy, Liên kết phả hệ).`,
-    `4. Đánh giá xem lỗ hổng của bài gốc đã có bài con nào trong phả hệ giải quyết chưa.`,
-    `5. Định dạng JSON chuẩn.`,
+    `YÊU CẦU BẮT BUỘC ĐỐI VỚI SUPER PROMPT ĐƯỢC SINH RA:`,
+    `1. Yêu cầu mô hình định vị chính xác bài báo gốc (p1) cùng các giả định biên và điểm yếu chí mạng của nó.`,
+    `2. BẮT BUỘC phải yêu cầu tìm ít nhất 3 đến 4 BÀI BÁO THẬT:`,
+    `   - Bài báo mục tiêu (p1)`,
+    `   - Bài báo kế thừa / bảo vệ (p2)`,
+    `   - Ít nhất 1-2 bài báo TẤN CÔNG / BÁC BỎ TRỰC DIỆN (p3, p4) chỉ ra điều kiện gây sụp đổ bài gốc.`,
+    `3. Trích xuất đầy đủ 7 TRỤ CỘT TRI THỨC KHOA HỌC cho mỗi bài báo.`,
+    `4. BẮT BUỘC YÊU CẦU MÔ HÌNH TRẢ VỀ DUY NHẤT 1 KHỐI JSON THEO ĐÚNG CẤU TRÚC SAU:`,
+    `\`\`\`json`,
+    JSON_SCHEMA_EXAMPLE,
+    `\`\`\``,
+    `5. BẮT BUỘC GHI RÕ TRONG PROMPT: Mọi bài báo BẮT BUỘC phải nằm trong mảng "papers" và có các liên kết "refute" (tấn công) trong mảng "relations".`,
     ``,
     `HÃY TRẢ VỀ DUY NHẤT TOÀN VĂN NỘI DUNG "SUPER PROMPT" ĐÃ TINH CHẾ. KHÔNG THÊM LỜI CHÀO HỎI HOẶC GIẢI THÍCH DƯ THỪA.`,
   ].join('\n');
@@ -142,7 +210,8 @@ export function buildEpistemicMetaPrompt({ provider, mode, phenomenon, chain, ta
 
 export function buildAiResearchPrompt() {
   const mode = selectedAiMode;
-  const provider = selectedAiProvider;
+  const activeKey = getActiveApiKeyRecord();
+  const provider = activeKey?.provider || 'gemini-api';
 
   // =========================================================================
   // CHẾ ĐỘ 1: PHÂN RÃ HIỆN TƯỢNG ĐẾN CÂU HỎI NGHIÊN CỨU
@@ -151,12 +220,12 @@ export function buildAiResearchPrompt() {
     const phenomenon = ($('#aiTopicInput')?.value || '').trim() || 'Hiện tượng nghiên cứu';
     const chain = ($('#aiDecomposeChainInput')?.value || '').trim() || 'Chuỗi phân rã suy luận';
 
-    // 1.1 Tối ưu cho Anthropic Claude (XML Tags + Phản biện Logic Sâu)
+    // 1.1 Tối ưu cho Anthropic Claude
     if (provider === 'claude-api') {
       return [
         `<system_role>`,
-        `Bạn là một nhà khoa học nghiên cứu cấp cao (Senior Research Epistemologist) và chuyên gia phân tích Phả hệ Khoa học cho hệ thống đồ thị tri thức Filio3D.`,
-        `Nhiệm vụ: Đối chiếu chuỗi phân rã hiện tượng của người dùng với văn hiến học thuật thực tế (NeurIPS, ICML, ICLR, ACL, KDD, Nature, IEEE), tìm các bài báo chứng minh hoặc phản biện từng mắt xích, bóc tách theo 7 TRỤ CỘT TRI THỨC KHOA HỌC, và chỉ ra Khe hở nghiên cứu (Research Gap).`,
+        `Bạn là một nhà khoa học nghiên cứu cấp cao (Senior Research Epistemologist) của Filio3D.`,
+        `Nhiệm vụ: Đối chiếu chuỗi phân rã hiện tượng sau với văn hiến học thuật bình duyệt thực tế (NeurIPS, ICML, ICLR, ACL, KDD, Nature, IEEE), tìm 3-4 bài báo đối lập (nền móng, bảo vệ, và tấn công phản bác trực diện) theo 7 TRỤ CỘT TRI THỨC.`,
         `</system_role>`,
         ``,
         `<research_decomposition>`,
@@ -167,54 +236,20 @@ export function buildAiResearchPrompt() {
         `</research_decomposition>`,
         ``,
         `<epistemic_instructions>`,
-        `1. Tìm 3-4 bài báo khoa học thực tế (Peer-reviewed) tương ứng với từng bước trong chuỗi phân rã:`,
-        `   - Bài báo gốc đặt nền móng cho hiện tượng hoặc giả thuyết (Foundation).`,
-        `   - Bài báo phát triển / củng cố phương pháp giải pháp (Defense / Extension).`,
-        `   - Bài báo TẤN CÔNG / BÁC BỎ (Attacker / Refutation) chỉ ra điều kiện giả thuyết bị sai lầm hoặc sụp đổ (Break-point).`,
-        `2. Bóc tách nghiêm ngặt THEO 7 TRỤ CỘT TRI THỨC KHOA HỌC:`,
-        `   - Trụ cột 1: Đóng góp & Phát hiện cốt lõi (coreKnowledge).`,
-        `   - Trụ cột 2: Quá trình xây dựng phương pháp luận (methodPipeline).`,
-        `   - Trụ cột 3: Điều kiện bắt buộc để bài báo đúng (conditions: category, factor, value).`,
-        `   - Trụ cột 4: Nguyên liệu, tập dữ liệu & quy mô thực nghiệm (materials).`,
-        `   - Trụ cột 5: Bằng chứng thực nghiệm & kết quả (evidence).`,
-        `   - Trụ cột 6: Điểm gãy / Khi nào bài báo sụp đổ (limitations).`,
-        `   - Trụ cột 7: Mũi tên liên kết 3D: refute (đỏ), conflict (cam), lineage (tím), support (xanh).`,
-        `3. Chỉ ra ít nhất 1 Khe hở nghiên cứu (Research Gap ◇) chưa được giải quyết giữa các bài báo.`,
-        `</epistemic_instructions>`,
-        ``,
-        `<output_format>`,
-        `Trả về DUY NHẤT một khối JSON hợp lệ theo cấu trúc sau:`,
+        `1. Tìm ít nhất 3-4 bài báo khoa học thực tế:`,
+        `   - p1: Bài báo nền móng (Foundation).`,
+        `   - p2: Bài báo kế thừa / mở rộng (Defense / Lineage).`,
+        `   - p3, p4: Bài báo TẤN CÔNG / BÁC BỎ (Attacker / Refutation) chỉ ra điều kiện gây sụp đổ.`,
+        `2. Bóc tách nghiêm ngặt 7 Trụ Cột Tri Thức cho từng bài báo.`,
+        `3. Trả về DUY NHẤT một khối JSON hợp lệ theo đúng cấu trúc mẫu sau (tuyệt đối không dùng key tự do):`,
         `\`\`\`json`,
-        `{`,
-        `  "lineageTitle": "Phả hệ: ${phenomenon}",`,
-        `  "papers": [`,
-        `    {`,
-        `      "tempId": "p1",`,
-        `      "title": "Tên bài báo khoa học chính xác",`,
-        `      "authors": "Tác giả et al.",`,
-        `      "year": 2022,`,
-        `      "venue": "NeurIPS/ICML/ICLR/ACL/Nature",`,
-        `      "coreKnowledge": "Trụ cột 1: Đóng góp và phát hiện cốt lõi",`,
-        `      "methodPipeline": "Trụ cột 2: Từng bước phương pháp luận từ vấn đề đến giải pháp",`,
-        `      "conditions": [`,
-        `        { "category": "method", "factor": "Giả định", "value": "Trụ cột 3: Điều kiện cụ thể để bài báo đúng" }`,
-        `      ],`,
-        `      "materials": "Trụ cột 4: Tập dữ liệu, quy mô tham số, benchmark thực nghiệm",`,
-        `      "evidence": "Trụ cột 5: Kết quả thực nghiệm và số liệu đo lường cụ thể",`,
-        `      "limitations": "Trụ cột 6: Điểm gãy - Khi nào bài báo này thất bại?"`,
-        `    }`,
-        `  ],`,
-        `  "relations": [`,
-        `    { "from": "p2", "to": "p1", "type": "refute", "label": "Tấn công / Chỉ ra điểm gãy của p1", "conditionNote": "Điều kiện gây sụp đổ" },`,
-        `    { "from": "p1", "to": "p3", "type": "lineage", "label": "Kế thừa và mở rộng p1", "conditionNote": "Mở rộng giả thiết" }`,
-        `  ]`,
-        `}`,
+        JSON_SCHEMA_EXAMPLE,
         `\`\`\``,
-        `</output_format>`,
+        `</epistemic_instructions>`,
       ].join('\n');
     }
 
-    // 1.2 Tối ưu cho Google Gemini (Grounded Literature + Direct Fact Extraction)
+    // 1.2 Tối ưu cho Google Gemini
     if (provider === 'gemini-api') {
       return [
         `Bạn là chuyên gia phân tích Phả hệ Nghiên cứu Khoa học của hệ thống Filio3D.`,
@@ -224,81 +259,34 @@ export function buildAiResearchPrompt() {
         `CHUỖI PHÂN RÃ SUY LUẬN & GIẢ THUYẾT:`,
         chain,
         ``,
-        `YÊU CẦU TRÍCH XUẤT HỌC THUẬT (7 TRỤ CỘT TRI THỨC):`,
-        `1. Tìm 3-4 bài báo khoa học thực tế (có tác giả, năm, hội nghị uy tín: NeurIPS, ICML, ICLR, ACL, KDD, Nature, IEEE).`,
-        `2. Bóc tách mỗi bài báo đầy đủ 7 Trụ Cột:`,
-        `   - Trụ cột 1: Đóng góp & phát hiện cốt lõi (coreKnowledge).`,
-        `   - Trụ cột 2: Quá trình xây dựng phương pháp (methodPipeline).`,
-        `   - Trụ cột 3: Điều kiện tồn tại bắt buộc để bài báo đúng (conditions: category, factor, value).`,
-        `   - Trụ cột 4: Nguyên liệu, dataset & quy mô thực nghiệm (materials).`,
-        `   - Trụ cột 5: Bằng chứng thực nghiệm & phát hiện (evidence).`,
-        `   - Trụ cột 6: Điểm gãy sụp đổ / khi nào bài báo bị sai (limitations).`,
-        `   - Trụ cột 7: Mối quan hệ phả hệ biện chứng (refute, lineage, support, conflict).`,
-        `3. Chỉ ra Khe hở nghiên cứu (Research Gap ◇) còn bỏ ngỏ.`,
-        ``,
-        `ĐỊNH DẠNG JSON TRẢ VỀ:`,
+        `YÊU CẦU BẮT BUỘC:`,
+        `1. Tìm ít nhất 3 đến 4 BÀI BÁO KHOA HỌC THẬT ĐỐI LẬP NHAU TRONG PHẢ HỆ:`,
+        `   - p1: Bài báo nền móng (Foundation).`,
+        `   - p2: Bài báo kế thừa / phát triển (Lineage/Defense).`,
+        `   - p3, p4: Bài báo TẤN CÔNG / BÁC BỎ TRỰC DIỆN (Attacker/Refutation) chỉ ra điểm gãy suy luận.`,
+        `2. Bóc tách mỗi bài báo đầy đủ 7 Trụ Cột: coreKnowledge, methodPipeline, conditions, materials, evidence, limitations.`,
+        `3. BẮT BUỘC trả về DUY NHẤT 1 khối JSON chuẩn, tất cả bài báo nằm trong mảng "papers" và quan hệ trong mảng "relations":`,
         `\`\`\`json`,
-        `{`,
-        `  "lineageTitle": "Phả hệ: ${phenomenon}",`,
-        `  "papers": [`,
-        `    {`,
-        `      "tempId": "p1",`,
-        `      "title": "Tên bài báo",`,
-        `      "authors": "Tác giả et al.",`,
-        `      "year": 2022,`,
-        `      "venue": "Hội nghị/Nguồn",`,
-        `      "coreKnowledge": "Trụ cột 1: Đóng góp cốt lõi",`,
-        `      "methodPipeline": "Trụ cột 2: Quy trình phương pháp luận",`,
-        `      "conditions": [{ "category": "data", "factor": "Yếu tố", "value": "Trụ cột 3: Điều kiện tồn tại" }],`,
-        `      "materials": "Trụ cột 4: Dataset & tài nguyên",`,
-        `      "evidence": "Trụ cột 5: Kết quả thực nghiệm",`,
-        `      "limitations": "Trụ cột 6: Điểm gãy"`,
-        `    }`,
-        `  ],`,
-        `  "relations": [`,
-        `    { "from": "p2", "to": "p1", "type": "refute", "label": "Tấn công / Bác bỏ", "conditionNote": "Điều kiện gây sai lệch" }`,
-        `  ]`,
-        `}`,
+        JSON_SCHEMA_EXAMPLE,
         `\`\`\``,
       ].join('\n');
     }
 
-    // 1.3 Tối ưu cho OpenAI GPT (Developer Role + Structured Chain-of-Thought)
+    // 1.3 Tối ưu cho OpenAI GPT
     return [
       `[Role: Senior AI Research Epistemologist for Filio3D Graph]`,
-      `[Task: Ground user phenomenon decomposition into real scientific literature across 7 Epistemic Pillars]`,
+      `[Task: Ground user phenomenon decomposition into 3-4 real dialectical scientific papers across 7 Epistemic Pillars]`,
       ``,
       `User Phenomenon: "${phenomenon}"`,
       `Decomposition Reasoning Chain:`,
       chain,
       ``,
       `Instructions:`,
-      `1. Find 3-4 real peer-reviewed scientific papers addressing this reasoning chain (foundation, attacks, and defense).`,
-      `2. Extract the 7 Knowledge Pillars for each paper: coreKnowledge, methodPipeline, conditions, materials, evidence, limitations, and relations.`,
-      `3. Identify points of refutation: Where does the assumption break?`,
-      `4. Output strictly valid JSON matching this schema:`,
+      `1. Find 3-4 real peer-reviewed scientific papers (foundation p1, extension p2, and refuting attacks p3/p4).`,
+      `2. Extract the 7 Knowledge Pillars for each paper: coreKnowledge, methodPipeline, conditions, materials, evidence, limitations.`,
+      `3. Output strictly valid JSON matching this schema:`,
       `\`\`\`json`,
-      `{`,
-      `  "lineageTitle": "Phả hệ: ${phenomenon}",`,
-      `  "papers": [`,
-      `    {`,
-      `      "tempId": "p1",`,
-      `      "title": "Tên bài",`,
-      `      "authors": "Tác giả",`,
-      `      "year": 2023,`,
-      `      "venue": "NeurIPS",`,
-      `      "coreKnowledge": "Trụ cột 1: Đóng góp chính",`,
-      `      "methodPipeline": "Trụ cột 2: Quy trình phương pháp",`,
-      `      "conditions": [{"category":"method","factor":"Giả định","value":"Trụ cột 3: Điều kiện"}],`,
-      `      "materials": "Trụ cột 4: Datasets",`,
-      `      "evidence": "Trụ cột 5: Bằng chứng",`,
-      `      "limitations": "Trụ cột 6: Điểm gãy"`,
-      `    }`,
-      `  ],`,
-      `  "relations": [`,
-      `    { "from": "p2", "to": "p1", "type": "refute", "label": "Tấn công/Bác bỏ" }`,
-      `  ]`,
-      `}`,
+      JSON_SCHEMA_EXAMPLE,
       `\`\`\``,
     ].join('\n');
   }
@@ -310,12 +298,12 @@ export function buildAiResearchPrompt() {
   const targetCore = ($('#aiTargetCoreInput')?.value || '').trim() || 'Đóng góp chính';
   const attackReq = ($('#aiAttackInstruction')?.value || '').trim();
 
-  // 2.1 Tối ưu cho Claude
+  // 2.1 Claude
   if (provider === 'claude-api') {
     return [
       `<system_role>`,
-      `Bạn là chuyên gia Phản biện Học thuật (Peer-Review Critic & Epistemic Defense/Attack Analyst) cho hệ thống Filio3D.`,
-      `Nhiệm vụ: Phân tích 1 bài báo mục tiêu, tìm các công trình kế thừa bảo vệ (Defense/Foundation) và các công trình TẤN CÔNG / BÁC BỎ / PHỦ ĐỊNH (Attacker/Refutation) cùng các điều kiện biên sụp đổ theo 7 TRỤ CỘT TRI THỨC.`,
+      `Bạn là chuyên gia Phản biện Học thuật (Peer-Review Critic & Epistemic Defense/Attack Analyst) của Filio3D.`,
+      `Nhiệm vụ: Phân tích bài báo mục tiêu, tìm các công trình bảo vệ (Defense) và các công trình TẤN CÔNG / BÁC BỎ (Attacker/Refutation) theo 7 TRỤ CỘT TRI THỨC.`,
       `</system_role>`,
       ``,
       `<target_paper>`,
@@ -325,89 +313,270 @@ export function buildAiResearchPrompt() {
       `</target_paper>`,
       ``,
       `<dialectical_mapping_requirements>`,
-      `1. Bao gồm chính bài báo mục tiêu (tempId: "p1") với đầy đủ 7 Trụ Cột Tri Thức.`,
-      `2. Tìm 2-3 bài báo khoa học thực tế xuất bản sau bài gốc:`,
-      `   - Ít nhất 1 bài báo kế thừa / củng cố (Defense/Extension -> mũi tên lineage/support).`,
-      `   - Ít nhất 1-2 bài báo TẤN CÔNG TRỰC DIỆN (Attacker/Refutation -> mũi tên refute): bài báo này phải chỉ ra điều kiện cụ thể mà tại đó phương pháp của p1 bị vô hiệu hóa hoặc sụp đổ!`,
-      `3. Bóc tách rõ 7 Trụ Cột: coreKnowledge, methodPipeline, conditions, materials, evidence, limitations.`,
-      `4. Chỉ ra khe hở nghiên cứu (Research Gap) còn tồn tại giữa bài gốc và các bài tấn công.`,
-      `</dialectical_mapping_requirements>`,
-      ``,
-      `<output_format>`,
+      `1. Tìm 3-4 bài báo khoa học thực tế: p1 (bài mục tiêu), p2 (kế thừa/bảo vệ), p3 (tấn công bác bỏ trực diện).`,
+      `2. Bóc tách rõ 7 Trụ Cột cho mỗi bài báo.`,
+      `3. Trả về DUY NHẤT một khối JSON hợp lệ theo đúng cấu trúc:`,
       `\`\`\`json`,
-      `{`,
-      `  "lineageTitle": "Phả hệ Tấn công & Phòng thủ: ${targetPaper.slice(0, 40)}",`,
-      `  "papers": [`,
-      `    {`,
-      `      "tempId": "p1",`,
-      `      "title": "${targetPaper}",`,
-      `      "authors": "Tác giả bài gốc",`,
-      `      "year": 2017,`,
-      `      "venue": "Nguồn gốc",`,
-      `      "coreKnowledge": "${targetCore}",`,
-      `      "methodPipeline": "Trụ cột 2: Phương pháp bài gốc",`,
-      `      "conditions": [{ "category": "method", "factor": "Giả định", "value": "Điều kiện cần để bài này đúng" }],`,
-      `      "materials": "Trụ cột 4: Dataset bài gốc",`,
-      `      "evidence": "Trụ cột 5: Kết quả bài gốc",`,
-      `      "limitations": "Trụ cột 6: Điểm gãy khi bị tấn công"`,
-      `    },`,
-      `    {`,
-      `      "tempId": "p2",`,
-      `      "title": "Tên bài báo Tấn công / Bác bỏ p1",`,
-      `      "authors": "Tác giả tấn công",`,
-      `      "year": 2020,`,
-      `      "venue": "Hội nghị uy tín",`,
-      `      "coreKnowledge": "Chỉ ra p1 sai lầm khi vi phạm điều kiện X",`,
-      `      "methodPipeline": "Phương pháp thiết kế đòn tấn công phản bác",`,
-      `      "conditions": [{ "category": "environment", "factor": "Miền kiểm thử", "value": "Điều kiện gây sụp đổ" }],`,
-      `      "materials": "Benchmark đối kháng",`,
-      `      "evidence": "Tỷ lệ lỗi tăng vọt của p1 khi bị tấn công",`,
-      `      "limitations": "Hạn chế của bài tấn công"`,
-      `    }`,
-      `  ],`,
-      `  "relations": [`,
-      `    { "from": "p2", "to": "p1", "type": "refute", "label": "TẤN CÔNG: Bác bỏ p1 dưới điều kiện tương quan phức tạp" }`,
-      `  ]`,
-      `}`,
+      JSON_SCHEMA_EXAMPLE,
       `\`\`\``,
-      `</output_format>`,
+      `</dialectical_mapping_requirements>`,
     ].join('\n');
   }
 
-  // 2.2 Tối ưu cho Gemini & GPT
+  // 2.2 Gemini & GPT
   return [
     `Bạn là chuyên gia phân tích Đòn Tấn công & Phòng thủ Học thuật của Filio3D.`,
     `Bài báo mục tiêu: "${targetPaper}"`,
     `Đóng góp cốt lõi: "${targetCore}"`,
     `Yêu cầu: ${attackReq}`,
     ``,
-    `Hãy tìm các bài báo thực tế trong văn hiến đã kế thừa (Defense) và các bài báo TẤN CÔNG / BÁC BỎ (Attacker / Refutation) bài báo này.`,
-    `Bóc tách rõ 7 TRỤ CỘT TRI THỨC KHOA HỌC của từng bài báo (coreKnowledge, methodPipeline, conditions, materials, evidence, limitations).`,
-    `Trả về khối JSON chuẩn:`,
+    `Hãy tìm 3-4 bài báo thực tế trong văn hiến: bài gốc (p1), bài kế thừa bảo vệ (p2), và các bài TẤN CÔNG / BÁC BỎ (p3, p4) chỉ ra điều kiện gây sụp đổ p1.`,
+    `Bóc tách rõ 7 TRỤ CỘT TRI THỨC KHOA HỌC cho từng bài báo.`,
+    `Trả về duy nhất khối JSON chuẩn:`,
     `\`\`\`json`,
-    `{`,
-    `  "lineageTitle": "Phả hệ Tấn công & Phòng thủ: ${targetPaper.slice(0, 40)}",`,
-    `  "papers": [`,
-    `    {`,
-    `      "tempId": "p1",`,
-    `      "title": "${targetPaper}",`,
-    `      "authors": "Tác giả",`,
-    `      "year": 2017,`,
-    `      "venue": "Venue",`,
-    `      "coreKnowledge": "${targetCore}",`,
-    `      "methodPipeline": "Phương pháp",`,
-    `      "conditions": [{ "category": "method", "factor": "Giả định", "value": "Điều kiện" }],`,
-    `      "materials": "Datasets",`,
-    `      "evidence": "Kết quả",`,
-    `      "limitations": "Điểm gãy"`,
-    `    }`,
-    `  ],`,
-    `  "relations": [`,
-    `    { "from": "p2", "to": "p1", "type": "refute", "label": "Tấn công / Bác bỏ p1" }`,
-    `  ]`,
-    `}`,
+    JSON_SCHEMA_EXAMPLE,
     `\`\`\``,
   ].join('\n');
+}
+
+/**
+ * Làm sạch chuỗi văn bản của từng trường:
+ * - Loại bỏ hoàn toàn dấu ngoặc xoắn {, }, ngoặc vuông [, ]
+ * - Loại bỏ các key JSON trơ trọi như "researchProblem":, "pillar4_materials":
+ * - Loại bỏ dấu nháy kép thừa
+ * - Tuyệt đối không để chuỗi "{", "}", hoặc rỗng lọt vào card
+ */
+function cleanFieldText(val, fallback = '') {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'object') {
+    if (Array.isArray(val)) {
+      return val.map((item) => cleanFieldText(item)).filter(Boolean).join('; ') || fallback;
+    }
+    const cleanPairs = Object.entries(val)
+      .map(([k, v]) => `${k}: ${cleanFieldText(v)}`)
+      .filter((s) => !s.startsWith('{') && !s.endsWith('{') && s.length > 3);
+    return cleanPairs.join('; ') || fallback;
+  }
+  let str = String(val).trim();
+  // Strip raw JSON artifacts: leading/trailing braces, brackets, quotes
+  str = str.replace(/^[\s{}"'\[\]]+|[\s{}"'\[\]]+$/g, '');
+  // Strip leading property keys like "researchProblem": or "pillar4_materials":
+  str = str.replace(/^[a-zA-Z0-9_\-\s]+["']?\s*:\s*["']?/i, '');
+  // Strip leading bullet headers
+  str = str.replace(/^[-*•]\s*(?:Tri thức|Đóng góp|Phương pháp|Quy trình|Điều kiện|Giả định|Nguyên liệu|Dataset|Bằng chứng|Kết quả|Điểm gãy|Giới hạn)?[:\s]*/i, '');
+  str = str.replace(/^["']|["']$/g, '').trim();
+  if (str === '{' || str === '}' || str === '[]' || str === '{}' || str === '""' || !str) {
+    return fallback;
+  }
+  return str;
+}
+
+/**
+ * Tự động sửa chữa JSON bị cắt cụt do giới hạn token
+ */
+function tryRepairAndParseJson(text) {
+  if (!text) return null;
+  const trimmed = text.trim();
+
+  // 1. Thử parse trực tiếp
+  try {
+    return JSON.parse(trimmed);
+  } catch (e) {}
+
+  // 2. Tìm khối ```json ... ```
+  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch) {
+    try {
+      return JSON.parse(fenceMatch[1].trim());
+    } catch (e) {}
+  }
+
+  // 3. Trích xuất từ dấu { đầu tiên đến dấu } cuối cùng
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+    } catch (e) {}
+  }
+
+  // 4. Trích xuất từ dấu [ đầu tiên đến dấu ] cuối cùng
+  const firstBracket = trimmed.indexOf('[');
+  const lastBracket = trimmed.lastIndexOf(']');
+  if (firstBracket !== -1 && lastBracket > firstBracket) {
+    try {
+      const arr = JSON.parse(trimmed.slice(firstBracket, lastBracket + 1));
+      return { papers: arr };
+    } catch (e) {}
+  }
+
+  // 5. Tự động đóng ngoặc đối với JSON bị ngắt giữa chừng
+  if (firstBrace !== -1) {
+    let candidate = trimmed.slice(firstBrace);
+    const lastQuote = candidate.lastIndexOf('"');
+    if (lastQuote > 0) {
+      const sub = candidate.slice(0, lastQuote + 1);
+      const openBraces = (sub.match(/\{/g) || []).length;
+      const closeBraces = (sub.match(/\}/g) || []).length;
+      const openBrackets = (sub.match(/\[/g) || []).length;
+      const closeBrackets = (sub.match(/\]/g) || []).length;
+      let repaired = sub;
+      for (let i = 0; i < openBrackets - closeBrackets; i++) repaired += ']';
+      for (let i = 0; i < openBraces - closeBraces; i++) repaired += '}';
+      try {
+        return JSON.parse(repaired);
+      } catch (e) {}
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Trích xuất danh sách bài báo từ mọi dạng JSON mà LLM có thể trả về:
+ * - Chuẩn: { papers: [...] }
+ * - Mảng trực tiếp: [ {...}, {...} ]
+ * - Danh mục từ điển: { "ratner2016_audit": "...", "li2020_audit": "..." }
+ */
+function extractPapersFromParsedObject(parsed) {
+  if (!parsed || typeof parsed !== 'object') return [];
+
+  // Chuẩn 1: { papers: [...] }
+  if (Array.isArray(parsed.papers) && parsed.papers.length > 0) {
+    return parsed.papers;
+  }
+
+  // Chuẩn 2: [ {...}, {...} ]
+  if (Array.isArray(parsed) && parsed.length > 0) {
+    return parsed;
+  }
+
+  // Chuẩn 3: Các key đồng nghĩa (sources, literature, nodes, articles)
+  for (const k of ['sources', 'literature', 'nodes', 'articles', 'items']) {
+    if (Array.isArray(parsed[k]) && parsed[k].length > 0) {
+      return parsed[k];
+    }
+  }
+
+  // Chuẩn 4: Object chứa các bài báo con { "p1": {...}, "p2": {...} }
+  const objValues = Object.values(parsed).filter(
+    (v) => v && typeof v === 'object' && !Array.isArray(v) && (v.title || v.coreKnowledge || v.authors)
+  );
+  if (objValues.length > 0) {
+    return objValues;
+  }
+
+  // Chuẩn 5: Audit Map (Dạng key-value phân tích mà Gemini thường sinh khi prompt thiếu schema: { "ratner2016_audit": "...", "li2020_audit": "..." })
+  const extracted = [];
+  const entries = Object.entries(parsed);
+  entries.forEach(([key, val], idx) => {
+    const lowerKey = key.toLowerCase();
+    if (
+      lowerKey === 'researchproblem' ||
+      lowerKey === 'lineagetitle' ||
+      lowerKey === 'topic' ||
+      lowerKey.includes('pillar') ||
+      lowerKey.includes('material') ||
+      lowerKey.includes('dataset') ||
+      lowerKey.includes('benchmark')
+    ) {
+      return;
+    }
+    const valStr = typeof val === 'object' ? JSON.stringify(val) : String(val);
+    if (valStr.length < 30) return;
+
+    // Trích xuất tên tác giả, năm và hội nghị từ văn bản
+    const citeMatch = valStr.match(/([A-Z][a-zA-Z\s]+(?:et al\.)?)\s*\((?:([A-Z0-9]+)\s+)?(19\d\d|20[0-2]\d)\)/);
+    const keyMatch = key.match(/([a-zA-Z]+)(19\d\d|20[0-2]\d)/);
+
+    let authors = 'Tác giả học thuật';
+    let year = 2018 + idx;
+    let venue = 'Hội nghị uy tín';
+    let title = '';
+
+    if (citeMatch) {
+      authors = citeMatch[1].trim();
+      year = parseInt(citeMatch[3], 10);
+      if (citeMatch[2]) venue = citeMatch[2];
+      const titlePrefix = valStr.match(/^([A-Za-z0-9\s:–-]+?)\s*\(/);
+      if (titlePrefix && titlePrefix[1].length > 6) {
+        title = titlePrefix[1].trim();
+      } else {
+        title = `${authors} (${venue} ${year})`;
+      }
+    } else if (keyMatch) {
+      authors = keyMatch[1].charAt(0).toUpperCase() + keyMatch[1].slice(1) + ' et al.';
+      year = parseInt(keyMatch[2], 10);
+      title = `Nghiên cứu ${authors} (${year})`;
+    } else {
+      title = `Nghiên cứu #${idx + 1}: ${key.replace(/_/g, ' ')}`;
+    }
+
+    const cleanVal = valStr.replace(/\b([A-Za-z]+)\.\s+/g, (m, word) => {
+      if (['al', 'e', 'g', 'i', 'vs', 'dr', 'prof'].includes(word.toLowerCase())) {
+        return word + ' ';
+      }
+      return m;
+    });
+    const sentences = cleanVal.split(/(?<=[.!?])\s+/);
+    let core = sentences[0] || valStr;
+    if (core.length < 35 && sentences[1]) {
+      core = core + ' ' + sentences[1];
+    }
+    const limit =
+      sentences.find((s) => /(phản bác|tấn công|ngụy biện|sụp đổ|hạn chế|thất bại|không còn|sai|limitation)/i.test(s)) ||
+      'Điểm gãy khi vi phạm điều kiện thực nghiệm.';
+    const method =
+      sentences.find((s) => /(phương pháp|mô hình|thuật toán|pipeline|framework|phương thức)/i.test(s)) ||
+      `Phương pháp luận kiểm chứng theo ${authors}`;
+    const evidence =
+      sentences.find((s) => /(chứng minh|thực nghiệm|độ chính xác|kết quả|f1|dataset|loss)/i.test(s)) ||
+      'Đã kiểm chứng thực nghiệm theo công bố của tác giả.';
+
+    extracted.push({
+      tempId: `p${extracted.length + 1}`,
+      title: cleanFieldText(title, `Nghiên cứu ${authors} (${year})`),
+      authors: cleanFieldText(authors, 'Tác giả học thuật'),
+      year,
+      venue: cleanFieldText(venue, 'Hội nghị quốc tế'),
+      coreKnowledge: cleanFieldText(core, 'Đóng góp tri thức cốt lõi.'),
+      methodPipeline: cleanFieldText(method, 'Quy trình phương pháp luận.'),
+      conditions: [{ category: 'method', factor: 'Giả định tiên đề', value: 'Trong miền phân phối kiểm thử thực nghiệm' }],
+      materials: cleanFieldText(parsed.pillar4_materials || 'Tập dữ liệu và benchmark chuẩn'),
+      evidence: cleanFieldText(evidence, 'Kiểm chứng thực nghiệm công bố.'),
+      limitations: cleanFieldText(limit, 'Điểm gãy khi bị tấn công hoặc vi phạm điều kiện.'),
+    });
+  });
+
+  return extracted;
+}
+
+/**
+ * Trích xuất hoặc tự động sinh liên kết phả hệ biện chứng (refute / lineage)
+ */
+function extractRelationsFromParsedObject(parsed, papers) {
+  if (Array.isArray(parsed?.relations) && parsed.relations.length > 0) {
+    return parsed.relations;
+  }
+  const relations = [];
+  if (papers && papers.length >= 2) {
+    for (let i = 1; i < papers.length; i++) {
+      const p = papers[i];
+      const isRefute = /(bác bỏ|tấn công|sụp đổ|phản biện|ngụy biện|refute|attack|fail)/i.test(
+        (p.title || '') + ' ' + (p.coreKnowledge || '') + ' ' + (p.limitations || '')
+      );
+      relations.push({
+        from: p.tempId || `p${i + 1}`,
+        to: papers[0].tempId || 'p1',
+        type: isRefute ? 'refute' : 'lineage',
+        label: isRefute
+          ? `TẤN CÔNG: Bác bỏ giả định của ${papers[0].authors || 'bài trước'}`
+          : `Kế thừa và củng cố phả hệ`,
+        conditionNote: isRefute ? 'Điều kiện làm sụp đổ phương pháp' : 'Mở rộng giả định',
+      });
+    }
+  }
+  return relations;
 }
 
 /**
@@ -418,21 +587,33 @@ export function parseRawAiOutputToGraph(rawText, metadata = {}) {
   const text = (rawText || '').trim();
   if (!text) return null;
 
-  const jsonFenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidateJson = jsonFenceMatch ? jsonFenceMatch[1].trim() : text;
-  try {
-    const firstBrace = candidateJson.indexOf('{');
-    const lastBrace = candidateJson.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace > firstBrace) {
-      const parsed = JSON.parse(candidateJson.slice(firstBrace, lastBrace + 1));
-      if (Array.isArray(parsed.papers) && parsed.papers.length > 0) {
-        return normalizeParsedObject(parsed, metadata);
-      }
-    }
-  } catch (e) {}
+  // 1. Thử parse qua JSON Engine (hỗ trợ cả JSON bị cắt, mảng, audit map)
+  const parsedJson = tryRepairAndParseJson(text);
+  if (parsedJson) {
+    const extractedPapers = extractPapersFromParsedObject(parsedJson);
+    if (extractedPapers.length > 0) {
+      const extractedRelations = extractRelationsFromParsedObject(parsedJson, extractedPapers);
+      let lineageTitle =
+        parsedJson.lineageTitle ||
+        parsedJson.researchProblem ||
+        ($('#aiTopicInput')?.value || '').trim() ||
+        'Phả hệ Biện chứng Học thuật';
+      lineageTitle = cleanFieldText(lineageTitle, 'Phả hệ Biện chứng Học thuật');
 
+      return normalizeParsedObject(
+        {
+          lineageTitle,
+          papers: extractedPapers,
+          relations: extractedRelations,
+        },
+        metadata
+      );
+    }
+  }
+
+  // 2. Fallback: Parse văn bản Markdown tự do (Tách theo tiêu đề hoặc trích dẫn tác giả)
   const blocks = text
-    .split(/\n(?=#{1,4}\s|\d+\.\s+\*\*|\*\*Bài báo|\*\*Paper)/i)
+    .split(/\n(?=(?:#{1,4}\s|\d+\.\s+\*\*|\*\*Bài báo|\*\*Paper|[A-Z][a-zA-Z\s]+(?:et al\.)?\s*\((?:[A-Z0-9]+\s+)?(?:19|20)\d\d\)))/i)
     .map((b) => b.trim())
     .filter((b) => b.length > 25);
 
@@ -444,7 +625,7 @@ export function parseRawAiOutputToGraph(rawText, metadata = {}) {
       .split('\n')
       .map((l) => l.trim())
       .filter(Boolean);
-    const header = lines[0].replace(/^[#*0-9.\-–\s]+/, '').replace(/\*+/g, '').trim();
+    const rawHeader = lines[0].replace(/^[#*0-9.\-–\s]+/, '').replace(/\*+/g, '').trim();
     const yearMatch = blk.match(/\b(19\d\d|20[0-2]\d)\b/);
     const year = yearMatch ? parseInt(yearMatch[1], 10) : 2020 + idx;
 
@@ -463,27 +644,29 @@ export function parseRawAiOutputToGraph(rawText, metadata = {}) {
     const evLine =
       lines.find((l) => /(bằng chứng|kết quả|thực nghiệm|phát hiện|evidence|metric|f1|accuracy)/i.test(l)) ||
       'Đã kiểm chứng thực nghiệm theo số liệu tác giả công bố';
-    const coreLine = lines.find((l, i) => i > 0 && l !== condLine && l !== limitLine && l !== methodLine && l !== matLine && l !== evLine) || header;
+    const coreLine =
+      lines.find((l, i) => i > 0 && l !== condLine && l !== limitLine && l !== methodLine && l !== matLine && l !== evLine) ||
+      rawHeader;
 
     const tempId = `ai-p${idx + 1}`;
     papers.push({
       tempId,
-      title: header.slice(0, 115),
+      title: cleanFieldText(rawHeader.slice(0, 115), `Bài báo #${idx + 1}`),
       authors: `Nghiên cứu #${idx + 1}`,
       year,
       venue: 'AI Extracted',
-      coreKnowledge: coreLine.replace(/^[-*•]\s*(Tri thức|Đóng góp)?[:\s]*/i, ''),
-      methodPipeline: methodLine.replace(/^[-*•]\s*(Phương pháp|Quy trình)?[:\s]*/i, ''),
+      coreKnowledge: cleanFieldText(coreLine, 'Đóng góp và phát hiện cốt lõi của bài báo.'),
+      methodPipeline: cleanFieldText(methodLine, 'Quy trình phương pháp luận từ vấn đề đến giải pháp.'),
       conditions: [
         {
           category: 'method',
           factor: 'Điều kiện tồn tại',
-          value: condLine.replace(/^[-*•]\s*(Điều kiện|Giả định)?[:\s]*/i, ''),
+          value: cleanFieldText(condLine, 'Trong điều kiện giả định thực nghiệm.'),
         },
       ],
-      materials: matLine.replace(/^[-*•]\s*(Nguyên liệu|Dataset)?[:\s]*/i, ''),
-      evidence: evLine.replace(/^[-*•]\s*(Bằng chứng|Kết quả)?[:\s]*/i, ''),
-      limitations: limitLine.replace(/^[-*•]\s*(Điểm gãy|Giới hạn)?[:\s]*/i, ''),
+      materials: cleanFieldText(matLine, 'Tập dữ liệu chuẩn khảo cứu.'),
+      evidence: cleanFieldText(evLine, 'Đã kiểm chứng kết quả thực nghiệm.'),
+      limitations: cleanFieldText(limitLine, 'Điểm gãy khi lệch miền phân phối hoặc bị tấn công.'),
     });
 
     if (idx > 0) {
@@ -493,7 +676,7 @@ export function parseRawAiOutputToGraph(rawText, metadata = {}) {
         to: isAttack ? `ai-p${idx}` : tempId,
         type: isAttack ? 'refute' : 'lineage',
         label: isAttack
-          ? `Tấn công / Chỉ ra điểm gãy của bài trước (${year})`
+          ? `Tấn công / Bác bỏ giả định của bài trước (${year})`
           : `Kế thừa và phát triển tiếp phả hệ (${year})`,
         conditionNote: isAttack ? 'Tấn công làm sụp đổ giả định' : 'Mở rộng phả hệ',
       });
@@ -502,7 +685,7 @@ export function parseRawAiOutputToGraph(rawText, metadata = {}) {
 
   return normalizeParsedObject(
     {
-      lineageTitle: ($('#aiTopicInput')?.value || 'Phả hệ từ AI').trim(),
+      lineageTitle: ($('#aiTopicInput')?.value || 'Phả hệ Biện chứng Học thuật').trim(),
       papers,
       relations,
     },
@@ -515,48 +698,64 @@ function normalizeParsedObject(obj, metadata = {}) {
   const cleanPapers = (obj.papers || []).map((p, i) => {
     const newId = `p-ai-${Date.now().toString(36).slice(-3)}-${i + 1}`;
     idMap.set(p.tempId || p.id || `p${i + 1}`, newId);
+
+    const title = cleanFieldText(p.title, `Bài báo #${i + 1}`);
+    const authors = cleanFieldText(p.authors, 'Tác giả học thuật');
+    const venue = cleanFieldText(p.venue, 'Hội nghị quốc tế');
+    const coreKnowledge = cleanFieldText(p.coreKnowledge || p.summary, title);
+    const methodPipeline = cleanFieldText(p.methodPipeline || p.methodology, 'Quy trình phương pháp luận và thuật toán.');
+    const materials = cleanFieldText(p.materials || p.datasets, 'Tập dữ liệu và tài nguyên thực nghiệm chuẩn.');
+    const evidence = cleanFieldText(p.evidence || p.findings, 'Đã kiểm chứng kết quả thực nghiệm trên các chỉ số đo lường.');
+    const limitations = cleanFieldText(p.limitations, 'Điểm gãy khi vi phạm điều kiện biên hoặc bị tấn công.');
+
     const conds = Array.isArray(p.conditions)
       ? p.conditions.map((c) =>
           typeof c === 'string'
-            ? { category: 'method', factor: 'Điều kiện', value: c }
+            ? { category: 'method', factor: 'Điều kiện', value: cleanFieldText(c, 'Điều kiện tiên đề') }
             : {
                 category: c.category || 'method',
-                factor: c.factor || 'Điều kiện',
-                value: c.value || '',
+                factor: cleanFieldText(c.factor, 'Điều kiện'),
+                value: cleanFieldText(c.value, 'Điều kiện cần để phương pháp đúng'),
               }
         )
-      : [{ category: 'method', factor: 'Điều kiện', value: String(p.conditions || 'Theo giả định bài báo') }];
+      : [
+          {
+            category: 'method',
+            factor: 'Điều kiện tồn tại',
+            value: cleanFieldText(p.conditions, 'Theo giả định tiêu chuẩn của bài báo'),
+          },
+        ];
 
     const internalChain = Array.isArray(p.internalChain) && p.internalChain.length
       ? p.internalChain
       : [
-          { stage: 'Vấn đề', text: p.title || '' },
+          { stage: 'Vấn đề', text: title },
           { stage: 'Điều kiện', text: conds.map((c) => c.value).join('; ') },
-          { stage: 'Phương pháp', text: p.methodPipeline || 'Xây dựng mô hình & quy trình giải pháp' },
-          { stage: 'Kết luận', text: p.coreKnowledge || '' },
+          { stage: 'Phương pháp', text: methodPipeline },
+          { stage: 'Kết luận', text: coreKnowledge },
         ];
 
     return {
       id: newId,
       tempId: p.tempId || `p${i + 1}`,
-      title: p.title || `Bài báo #${i + 1}`,
-      authors: p.authors || 'AI Extracted',
-      year: parseInt(p.year, 10) || 2024,
-      venue: p.venue || 'Nghiên cứu',
+      title,
+      authors,
+      year: parseInt(p.year, 10) || 2022,
+      venue,
       provenance: p.provenance || {
         type: 'ai',
         model: metadata.model || 'Gemini 3.8 Flash',
-        provider: metadata.provider || selectedAiProvider,
-        mode: metadata.mode || selectedAiMode,
+        provider: metadata.provider || 'gemini-api',
+        mode: metadata.mode || 'decompose',
         timestamp: Date.now(),
       },
-      // 7 TRỤ CỘT TRI THỨC KHOA HỌC
-      coreKnowledge: p.coreKnowledge || p.summary || p.title,
-      methodPipeline: p.methodPipeline || p.methodology || internalChain.map((s) => `${s.stage}: ${s.text}`).join(' -> '),
+      // 7 TRỤ CỘT TRI THỨC KHOA HỌC (ĐÃ LÀM SẠCH HOÀN TOÀN DẤU NGOẶC {})
+      coreKnowledge,
+      methodPipeline,
       conditions: conds,
-      materials: p.materials || p.datasets || 'Tập dữ liệu và tài nguyên thực nghiệm chuẩn.',
-      evidence: p.evidence || p.findings || 'Đã kiểm chứng kết quả thực nghiệm trên các tác vụ đo lường.',
-      limitations: p.limitations || 'Chưa ghi điểm gãy cụ thể.',
+      materials,
+      evidence,
+      limitations,
       internalChain,
     };
   });
@@ -566,14 +765,14 @@ function normalizeParsedObject(obj, metadata = {}) {
       id: `rel-ai-${crypto.randomUUID().slice(0, 6)}`,
       from: idMap.get(r.from) || cleanPapers[0]?.id,
       to: idMap.get(r.to) || cleanPapers[1]?.id,
-      type: ARROW_TYPES[r.type] ? r.type : 'lineage',
-      label: r.label || 'Liên kết phả hệ',
-      conditionNote: r.conditionNote || r.label || '',
+      type: ARROW_TYPES[r.type] ? r.type : 'refute',
+      label: cleanFieldText(r.label, 'Liên kết phả hệ biện chứng'),
+      conditionNote: cleanFieldText(r.conditionNote, 'Điều kiện tương tác'),
     }))
     .filter((r) => r.from && r.to && r.from !== r.to);
 
   return {
-    lineageTitle: obj.lineageTitle || 'Phả hệ AI bóc tách',
+    lineageTitle: cleanFieldText(obj.lineageTitle, 'Phả hệ Biện chứng Học thuật'),
     papers: cleanPapers,
     relations: cleanRelations,
   };
@@ -585,6 +784,11 @@ function renderStagingPreview() {
   if (!stagedGraphData || !stagedGraphData.papers.length) {
     box.innerHTML = `<div class="staging-empty">Chưa có dữ liệu hợp lệ. Hãy bấm <b>"✨ AI Tinh Chế Prompt (Pha 1)"</b> hoặc <b>"⚡ Nạp Mẫu Có Sẵn"</b>.</div>`;
     return;
+  }
+
+  const summaryEl = $('#stagingModalSummary');
+  if (summaryEl) {
+    summaryEl.textContent = `${stagedGraphData.papers.length} bài báo · ${stagedGraphData.relations.length} liên kết phả hệ`;
   }
 
   box.innerHTML = `
@@ -633,8 +837,9 @@ function renderStagingPreview() {
 /**
  * Gọi trực tiếp LLM bằng API Key cá nhân của người dùng (BYOK)
  * - Hỗ trợ gọi trực tiếp từ trình duyệt (Gemini / OpenAI) hoặc qua Cloudflare Worker `/api/ai-proxy`.
+ * - Hỗ trợ jsonMode để bắt buộc model trả về JSON hoàn chỉnh, không cắt cụt (maxOutputTokens: 8192).
  */
-async function callCloudLlmWithUserKey({ provider, apiKey, model, prompt }) {
+async function callCloudLlmWithUserKey({ provider, apiKey, model, prompt, jsonMode = false }) {
   // 1. Gọi trực tiếp Google Gemini API từ trình duyệt bằng Key của người dùng
   if (provider === 'gemini-api') {
     let cleanModel = (model || 'gemini-3.8-flash').trim();
@@ -644,12 +849,21 @@ async function callCloudLlmWithUserKey({ provider, apiKey, model, prompt }) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       cleanModel
     )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+    const generationConfig = {
+      temperature: 0.2,
+      maxOutputTokens: 8192,
+    };
+    if (jsonMode) {
+      generationConfig.responseMimeType = 'application/json';
+    }
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2 },
+        generationConfig,
       }),
     });
     const data = await res.json();
@@ -663,17 +877,22 @@ async function callCloudLlmWithUserKey({ provider, apiKey, model, prompt }) {
   // 2. Gọi trực tiếp OpenAI API bằng Key của người dùng
   if (provider === 'openai-api') {
     const cleanModel = model || 'gpt-4o-mini';
+    const payload = {
+      model: cleanModel,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      max_tokens: 4096,
+    };
+    if (jsonMode) {
+      payload.response_format = { type: 'json_object' };
+    }
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: cleanModel,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2,
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -686,7 +905,7 @@ async function callCloudLlmWithUserKey({ provider, apiKey, model, prompt }) {
   const proxyRes = await fetch('/api/ai-proxy', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ provider, apiKey, model, prompt }),
+    body: JSON.stringify({ provider, apiKey, model, prompt, jsonMode }),
   });
   const proxyData = await proxyRes.json();
   if (!proxyRes.ok) {
@@ -1115,6 +1334,7 @@ export function initAiHubEvents(switchViewFn) {
         apiKey: activeKey.apiKey,
         model: activeKey.model,
         prompt,
+        jsonMode: true,
       });
 
       if ($('#aiRawResponseBox')) $('#aiRawResponseBox').value = result.text;
