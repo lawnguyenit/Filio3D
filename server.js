@@ -288,8 +288,11 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // Unified Multi-AI Query endpoint
-  if (req.method === 'POST' && (req.url === '/api/ai-query' || req.url === '/api/synthesize')) {
+  // Unified Multi-AI Query & Cloud BYOK Proxy endpoint
+  if (
+    req.method === 'POST' &&
+    (req.url === '/api/ai-query' || req.url === '/api/ai-proxy' || req.url === '/api/synthesize')
+  ) {
     try {
       const body = await readJsonBody(req);
       const prompt = body.prompt || body.packet;
