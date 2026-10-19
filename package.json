@@ -5,7 +5,7 @@
   "description": "Filio3D - 3D Research Ecosystem & AI Synthesis",
   "scripts": {
     "start": "node server.js",
-    "deploy": "wrangler pages deploy .",
+    "deploy": "wrangler deploy",
     "build": "echo 'No build step required for static assets'"
   },
   "devDependencies": {
