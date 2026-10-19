@@ -113,7 +113,8 @@ async function handleCloudByokProxy(body) {
     return { text, provider: 'OpenAI API', model: chosenModel };
   }
 
-  const geminiModel = model || 'gemini-2.5-flash';
+  let geminiModel = (model || 'gemini-3.8-flash').trim();
+  if (geminiModel === 'gemini-2.5-flash') geminiModel = 'gemini-3.8-flash';
   const resp = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(key)}`,
     {

@@ -101,7 +101,7 @@ export const CONDITION_CATEGORIES = {
 export const CLOUD_LLM_PROVIDERS = {
   'gemini-api': {
     label: '✨ Google AI Studio — Gemini API (Key cá nhân)',
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'gemini-3.8-flash',
     keyPlaceholder: 'Dán Gemini API Key của bạn (AIzaSy...)',
     hint: 'Gọi trực tiếp Gemini bằng API Key cá nhân của bạn. Key chỉ lưu trên trình duyệt của bạn, không dùng chung với người khác.',
   },

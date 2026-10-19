@@ -52,7 +52,9 @@ function syncProviderUiState() {
 
   const modelInput = $('#aiModelInput');
   if (modelInput && !isManual) {
-    modelInput.value = cfg.defaultModel;
+    if (!modelInput.value || modelInput.value === 'gemini-2.5-flash') {
+      modelInput.value = cfg.defaultModel;
+    }
   }
 
   const execBtn = $('#btnExecuteAiQuery');
@@ -287,7 +289,10 @@ function renderStagingPreview() {
 async function callCloudLlmWithUserKey({ provider, apiKey, model, prompt }) {
   // 1. Gọi trực tiếp Google Gemini API từ trình duyệt bằng Key của người dùng
   if (provider === 'gemini-api') {
-    const cleanModel = model || 'gemini-2.5-flash';
+    let cleanModel = (model || 'gemini-3.8-flash').trim();
+    if (cleanModel === 'gemini-2.5-flash') {
+      cleanModel = 'gemini-3.8-flash';
+    }
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       cleanModel
     )}:generateContent?key=${encodeURIComponent(apiKey)}`;
