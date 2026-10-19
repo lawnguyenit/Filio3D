@@ -76,15 +76,28 @@ flowchart TD
     H --> I["⚡ Nạp thẳng vào Không gian Đồ thị 3D"]
 ```
 
-1. **Pha 1: Tinh chế Prompt (Meta-Prompt Architect)**:
-   - LLM đảm nhận vai trò *Senior Research Epistemologist*, nâng cấp các ý niệm phân rã thô thành **Super Prompt** học thuật tối ưu riêng cho từng họ mô hình:
+1. **Két Khóa API Cá Nhân Đa Nhà Cung Cấp (Multi-Key BYOK Vault)**:
+   - Cho phép người dùng lưu trữ nhiều API Key (Google Gemini, Anthropic Claude, OpenAI GPT) an toàn trong két khóa cá nhân.
+   - Thêm, sửa, xóa, chuyển đổi key đang hoạt động tức thì.
+   - Cơ chế Khóa Cổng (Gatekeeper) ngăn chặn gọi nhầm khi chưa có key, kèm nút nạp mẫu đối kháng có sẵn để thử nghiệm.
+
+2. **Pha 1: Tinh chế Prompt (Meta-Prompt Architect)**:
+   - LLM đảm nhận vai trò *Senior Research Epistemologist*, nâng cấp các ý niệm phân rã thô hoặc bài báo mục tiêu thành **Super Prompt** học thuật tối ưu riêng cho từng họ mô hình:
      - **Anthropic Claude**: Tối ưu thẻ XML (`<research_decomposition>`, `<epistemic_instructions>`).
      - **Google Gemini**: Tối ưu Grounding literature search & JSON Schema.
      - **OpenAI GPT**: Tối ưu Developer role & Structured Chain-of-Thought constraints.
-   - Nếu chưa nhập API Key: Hệ thống lập tức sinh Super Prompt mẫu tương ứng và hiển thị nút **Chép Prompt Sang Web Ngoài**.
-2. **Pha 2: Khai thác Đồ thị (Dialectic Extraction)**:
-   - Gửi Super Prompt tới API Key cá nhân của người dùng.
-   - **Bộ Trung Gian Chuẩn Hóa** tiếp nhận văn bản (JSON hoặc Markdown tự do) và biên dịch thành cấu trúc 7 Trụ Cột Tri Thức kèm các mũi tên liên kết 3D.
+   - **Ràng buộc Phả hệ Biện chứng Tối thiểu 3–4 Bài báo**: Bắt buộc mọi Super Prompt sinh ra phải đòi hỏi tối thiểu 3-4 bài báo học thuật bình duyệt có tính đối kháng (1 bài nền móng `p1`, 1 bài kế thừa `p2`, 1-2 bài tấn công/bác bỏ trực diện `p3`/`p4`) kèm mũi tên `refute` và `lineage`.
+   - BẮT BUỘC mô hình tuân thủ cấu trúc JSON chuẩn `JSON_SCHEMA_EXAMPLE`.
+
+3. **Pha 2: Khai thác Đồ thị (Dialectic Extraction) & JSON Mode**:
+   - Gửi Super Prompt tới mô hình với tham số `jsonMode: true`, ép kiểu `responseMimeType: "application/json"` và mở rộng `maxOutputTokens: 8192` (Gemini) nhằm loại bỏ hoàn toàn hiện tượng ngắt cụt câu giữa chừng.
+
+4. **Bộ Trung Gian Chuẩn Hóa Bền Bỉ (Resilient Intermediate Formatter)**:
+   - **Bộ sửa lỗi JSON (JSON Auto-Repair Engine)**: Tự động phát hiện và vá các khối JSON bị đứt đoạn do token limit hoặc cú pháp dở dang.
+   - **Đa chuẩn tiếp nhận (Multi-format Adaptor)**: Xử lý hoàn hảo từ JSON chuẩn `{ papers: [...] }`, mảng trực tiếp `[...]`, cho đến dạng Audit Map theo key mà mô hình tự sinh (`Chuẩn 5`).
+   - **Trích xuất câu an toàn (Abbreviation-Safe Sentence Splitting)**: Bảo toàn các từ viết tắt học thuật phổ biến (`et al.`, `vs.`, `i.e.`, `e.g.`) không bị cắt cụt.
+   - **Làm sạch triệt để (7-Pillar Sanitizer)**: Loại bỏ 100% các ký tự ngoặc nhọn `{`, `}`, ngoặc vuông, nháy kép và tiền tố key JSON trơ trọi; tuyệt đối không để lọt rác cú pháp vào thẻ hiển thị.
+   - Tự động phát hiện và sinh các liên kết biện chứng (`refute` / `lineage`) ngay cả khi mô hình không trả về quan hệ.
 
 ---
 
