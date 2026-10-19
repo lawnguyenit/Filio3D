@@ -10,9 +10,8 @@ Tài liệu này giúp bạn định vị tức thì bất kỳ tính năng nào
 Filio3D/
 ├── index.html                  # Giao diện khung 100vh: Cổng Khóa Truy Cập + 4 Tab chính
 ├── styles.css                  # Toàn bộ hệ thống CSS, biến màu sắc, phân tầng thẻ & 3D HUD
-├── app.js                      # Cầu nối mỏng (import './src/main.js')
 ├── wrangler.toml               # Cấu hình triển khai miễn phí lên Cloudflare Pages + KV
-├── server.js                   # Server chạy cục bộ trên máy cá nhân (Node.js)
+├── server.js                   # Server chạy thử nghiệm cục bộ (Node.js)
 ├── docs/
 │   └── ARCHITECTURE.md         # [Tài liệu này] Bản đồ chi tiết từng file và hàm chức năng
 ├── src/                        # 🎯 MÃ NGUỒN FRONTEND ĐÃ TÁCH MODULE
