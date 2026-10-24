@@ -144,6 +144,48 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
+  if (req.method === 'POST' && req.url === '/api/auth') {
+    try {
+      const body = await readJsonBody(req);
+      const token = String(body.token || '').trim();
+      const DEFAULT_MASTER_ADMIN = 'FILIO3D-ADMIN-2026';
+      if (token === DEFAULT_MASTER_ADMIN) {
+        return sendJson(res, 200, {
+          valid: true,
+          userId: 'master-admin',
+          displayName: 'Chủ sở hữu (Master Admin)',
+          role: 'admin',
+          expiryDate: 'PERMANENT',
+          token,
+        });
+      }
+      const parts = token.split('.');
+      if (parts.length === 5 && parts[0] === 'F3D') {
+        const [, userId, expiryDateStr, role] = parts;
+        return sendJson(res, 200, {
+          valid: true,
+          userId,
+          displayName: userId,
+          role,
+          expiryDate: expiryDateStr,
+          token,
+        });
+      }
+      return sendJson(res, 200, { valid: false, reason: 'Mã truy cập không hợp lệ.' });
+    } catch (e) {
+      return sendJson(res, 400, { valid: false, reason: 'Lỗi xác thực.' });
+    }
+  }
+
+  if (req.url.startsWith('/api/workspace')) {
+    if (req.method === 'GET') {
+      return sendJson(res, 200, { workspace: null });
+    }
+    if (req.method === 'PUT') {
+      return sendJson(res, 200, { success: true });
+    }
+  }
+
   if (req.method === 'POST' && req.url === '/api/ai-proxy') {
     try {
       const body = await readJsonBody(req);

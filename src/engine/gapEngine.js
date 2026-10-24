@@ -2,7 +2,7 @@
  * @file src/engine/gapEngine.js
  * @description Bộ máy Phát hiện Khe Hở Nghiên Cứu (Research Gap Engine):
  * - Tự động đối chiếu các cạnh Tấn công/Bác bỏ (`refute`) và Tương khắc (`conflict`) giữa các bài báo.
- * - Tạo ứng viên khe hở từ các quan hệ được ghi nhận trong đồ thị; ứng viên cần được kiểm tra với văn liệu rộng hơn.
+ * - Trích xuất miền điều kiện chưa ai giải quyết (Missing Condition Domain) để tạo thành Nút Khe Hở (◇) trên không gian 3D.
  * - Hỗ trợ chuyển đổi bất kỳ Khe hở nào thành Câu hỏi nghiên cứu & Chuỗi suy luận mới khi câu hỏi cũ bị xóa.
  */
 
@@ -29,17 +29,21 @@ export function computeEcosystemGaps(filterEcoId = 'all', isolatedPaperIds = nul
 
       gaps.push({
         id: `gap-${rel.id}`,
-        kind: rel.type === 'refute' ? 'Ứng viên khe hở sau quan hệ bác bỏ' : 'Ứng viên khe hở từ quan hệ tương khắc',
-        title: `Ứng viên khe hở: xem xét điểm gãy giữa ${shortAuthor(pA)} (${pA.year}) & ${shortAuthor(pB)} (${pB.year})`,
-        summary: `Quan hệ ${rel.type} trong đồ thị hiện tại cho thấy ${shortAuthor(pA)} (${pA.year}) ${
+        kind: rel.type === 'refute' ? 'Khe hở sau Đòn Tấn Công / Bác Bỏ' : 'Khe hở Tương khắc Điều kiện',
+        title: `Khe hở: Khắc phục điểm gãy giữa ${shortAuthor(pA)} (${pA.year}) & ${shortAuthor(pB)} (${pB.year})`,
+        summary: `${shortAuthor(pA)} (${pA.year}) đã ${
           rel.type === 'refute' ? 'tấn công/bác bỏ' : 'chỉ ra sự tương khắc với'
-        } ${shortAuthor(pB)} (${pB.year}): "${rel.label}". Đây là tín hiệu để kiểm tra liệu có thể giữ ưu điểm của ${shortAuthor(
+        } ${shortAuthor(pB)} (${pB.year}): "${rel.label}". Cần một nghiên cứu mới vừa giữ được ưu điểm của ${shortAuthor(
           pB
-        )} trong điều kiện được nêu ở ${shortAuthor(pA)} hay không.`,
-        missingCondition: `Miền điều kiện cần kiểm tra: kết hợp [${condB}] trong bối cảnh [${condA}] (${pA.limitations || pB.limitations || ''}).`,
+        )} vừa không bị sụp đổ trong điều kiện của ${shortAuthor(pA)}.`,
+        missingCondition: `Miền điều kiện chưa giải quyết: Kết hợp [${condB}] trong bối cảnh khắc nghiệt của [${condA}] (${
+          pA.limitations || pB.limitations || ''
+        }).`,
         paperIds: [pA.id, pB.id],
         ecosystemId: pA.ecosystemId || pB.ecosystemId,
-        suggestedQuestion: `Liệu có thể bảo toàn hiệu năng của ${shortAuthor(pB)} (${pB.year}) trong điều kiện "${rel.conditionNote || rel.label}" được nêu ở ${shortAuthor(pA)} (${pA.year})?`,
+        suggestedQuestion: `Làm thế nào để bảo toàn hiệu năng của ${shortAuthor(pB)} (${
+          pB.year
+        }) khi bị đặt vào điều kiện tấn công "${rel.conditionNote || rel.label}" của ${shortAuthor(pA)} (${pA.year})?`,
       });
     }
   }

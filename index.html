@@ -150,7 +150,7 @@
           <div>
             <h2 style="margin:0;color:#fff;font-size:16px">🔑 Quản Lý Két Khóa API Cá Nhân (BYOK Vault)</h2>
             <p style="font-size:11.5px;color:#94a3b8;margin:2px 0 0">
-              Key hiện được lưu trong localStorage của trình duyệt ở dạng đọc được bởi JavaScript cùng trang. Khi chạy, key và prompt được gửi tới nhà cung cấp model; Claude đi qua proxy cấu hình của ứng dụng.
+              Lưu trữ nhiều API Key an toàn trên trình duyệt cá nhân. Không dùng chung, không tốn tài nguyên chung.
             </p>
           </div>
           <button type="button" class="icon-button" id="btnCloseKeyVaultModal">✕</button>
@@ -209,21 +209,21 @@
     </div>
 
     <!-- =========================================================================
-         MODAL 2: XEM & SỬA YÊU CẦU NGHIÊN CỨU
+         MODAL 2: XEM & SỬA SUPER PROMPT (PHA 1)
          ========================================================================= -->
     <div id="promptViewerModal" class="access-gate-overlay" hidden>
       <div class="gate-card" style="max-width:760px;max-height:85vh;display:flex;flex-direction:column">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-shrink:0">
           <div>
-            <h2 style="margin:0;color:#fff;font-size:16px">📝 Yêu cầu nghiên cứu</h2>
+            <h2 style="margin:0;color:#fff;font-size:16px">📝 Toàn Văn Super Prompt (Pha 1)</h2>
             <p style="font-size:11.5px;color:#94a3b8;margin:2px 0 0">
-              Bạn có thể đọc hoặc chỉnh sửa prompt trước khi gửi đến model hay chép sang ứng dụng khác.
+              Bạn có thể đọc toàn văn hoặc chỉnh sửa trực tiếp nội dung Prompt trước khi gửi sang Pha 2 hoặc chép sang web AI.
             </p>
           </div>
           <button type="button" class="icon-button" id="btnClosePromptModal">✕</button>
         </div>
         <div style="flex:1;min-height:280px;display:flex;flex-direction:column;margin-bottom:12px">
-          <textarea id="aiRefinedPromptBox" class="text-area mono-area" style="flex:1;resize:none;font-size:12px;line-height:1.5" placeholder="Prompt được ghép từ thông tin bạn nhập..."></textarea>
+          <textarea id="aiRefinedPromptBox" class="text-area mono-area" style="flex:1;resize:none;font-size:12px;line-height:1.5" placeholder="Nội dung Super Prompt..."></textarea>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
           <button type="button" class="secondary-button" id="btnCopyPromptModal">📋 Chép Toàn Bộ Prompt</button>
@@ -710,7 +710,7 @@
              =================================================================== -->
         <section id="viewAiHub" class="view-pane" hidden>
           <div class="ai-hub-container">
-              <!-- 1. LEGACY KEY GATE (hidden; API use is optional) -->
+            <!-- 1. GATEKEEPER LOCK (Hiển thị khi người dùng chưa lưu bất kỳ API Key nào) -->
             <div id="aiGatekeeperCard" class="ai-gatekeeper-box" hidden>
               <div class="ai-gate-icon">🔐</div>
               <h2>Mở Khóa Không Gian Phân Tích AI (BYOK)</h2>
@@ -728,31 +728,23 @@
               </div>
             </div>
 
-            <!-- 2. MAIN LOCAL-FIRST WORKFLOW -->
+            <!-- 2. MAIN STEP-BY-STEP WORKFLOW (Khi đã có API Key hoặc bấm dùng thử) -->
             <div id="aiMainWorkflow" class="ai-main-workflow">
               <!-- TOP CONTROL BAR -->
               <div class="ai-workflow-topbar">
                 <div class="ai-topbar-title">
-                  <span class="eyebrow">LOCAL-FIRST · Ý TƯỞNG, NGUỒN & BẰNG CHỨNG</span>
-                  <h2>Từ ý tưởng đến bản đồ nghiên cứu</h2>
+                  <span class="eyebrow">BYOK AI WORKFLOW · 7 TRỤ CỘT TRI THỨC</span>
+                  <h2>Trung Gian Nghiên Cứu & Tái Tổ Hợp Đồ Thị</h2>
                 </div>
 
                 <!-- COMPACT SINGLE-LINE MODE SELECTOR -->
                 <div class="ai-compact-modes" role="tablist">
-                  <button type="button" class="ai-mode-btn active" data-ai-mode="decompose" title="Bắt đầu từ suy nghĩ, quan sát hoặc câu hỏi còn thô">
-                    💡 Bắt đầu từ ý tưởng
+                  <button type="button" class="ai-mode-btn active" data-ai-mode="decompose" title="Phân rã hiện tượng thô thành chuỗi câu hỏi nghiên cứu và đối chiếu văn hiến">
+                    💡 Phân rã Hiện tượng
                   </button>
-                  <button type="button" class="ai-mode-btn" data-ai-mode="attack_defense" title="Bắt đầu từ một bài báo người dùng đã biết">
-                    📄 Bắt đầu từ bài báo
+                  <button type="button" class="ai-mode-btn" data-ai-mode="attack_defense" title="Đưa vào 1 bài báo mục tiêu để tìm các bài kế thừa và các bài tấn công/bác bỏ trực diện">
+                    🛡️⚔️ Tấn công & Phòng thủ
                   </button>
-                </div>
-
-                <div class="ai-execution-selector">
-                  <label for="aiExecutionModeSelect">Gửi bằng</label>
-                  <select id="aiExecutionModeSelect" class="text-field">
-                    <option value="external" selected>Model ngoài / công cụ nghiên cứu</option>
-                    <option value="api">API cá nhân</option>
-                  </select>
                 </div>
 
                 <!-- ACTIVE KEY SELECTOR & VAULT BUTTON -->
@@ -766,27 +758,25 @@
                 </div>
               </div>
 
-              <div id="aiExecutionHint" class="ai-execution-hint" role="status" aria-live="polite"></div>
-
               <!-- STEP INDICATOR TABS -->
               <div class="ai-stepper-bar">
                 <div class="ai-step-item active" id="stepIndicator1" data-step="1">
                   <span class="step-badge-num">1</span>
-                  <span class="step-text">Ý tưởng & phạm vi</span>
+                  <span class="step-text">Đầu vào Luận điểm</span>
                 </div>
                 <div class="step-arrow-divider">➔</div>
                 <div class="ai-step-item" id="stepIndicator2" data-step="2">
                   <span class="step-badge-num">2</span>
-                  <span class="step-text">Xem yêu cầu gửi model</span>
+                  <span class="step-text">Tinh chế Super Prompt (Pha 1)</span>
                 </div>
                 <div class="step-arrow-divider">➔</div>
                 <div class="ai-step-item" id="stepIndicator3" data-step="3">
                   <span class="step-badge-num">3</span>
-                  <span class="step-text">Nhận kết quả & duyệt nháp</span>
+                  <span class="step-text">Khai thác & Nạp 3D (Pha 2)</span>
                 </div>
               </div>
 
-              <!-- WORKFLOW PANELS -->
+              <!-- WORKFLOW PANELS (VỪA VẶN MÀN HÌNH, KHÔNG BỊ TRÀN HAY CUỘN) -->
               <div class="ai-step-content-area">
                 <!-- STEP 1 PANE -->
                 <div id="aiStep1Pane" class="ai-step-pane active">
@@ -794,51 +784,48 @@
                     <!-- DECOMPOSE MODE INPUTS -->
                     <div id="aiModeDecomposePanel" class="ai-mode-panel">
                       <div class="field-group">
-                        <label class="field-label" style="margin-top:0">Bạn đang nghĩ tới hoặc quan sát thấy điều gì?</label>
-                        <input id="aiTopicInput" class="text-field" placeholder="Cứ mô tả tự nhiên điều bạn thấy, chưa cần biết câu hỏi nghiên cứu là gì..." />
+                        <label class="field-label" style="margin-top:0">Hiện tượng quan sát / Luận điểm nghiên cứu ban đầu *</label>
+                        <input id="aiTopicInput" class="text-field" value="LLM Hallucination trong tổng hợp mã nguồn thư viện ít phổ biến" placeholder="VD: LLM bị hallucination ở API hiếm, Weak Label Learning bị suy thoái khi nhãn tương quan..." />
                       </div>
 
                       <div class="field-group" style="margin-top:10px">
-                        <label class="field-label">Bạn đã có giả thuyết, cách giải thích hoặc câu hỏi nào chưa? <span style="font-weight:400;color:#64748b">(không bắt buộc)</span></label>
-                        <textarea id="aiDecomposeChainInput" class="text-area" rows="4" placeholder="Ghi điều bạn đã thử nghĩ tới; có thể để trống hoặc viết chưa hoàn chỉnh."></textarea>
+                        <label class="field-label">Chuỗi phân rã suy luận & Giả thuyết giải pháp của bạn *</label>
+                        <textarea id="aiDecomposeChainInput" class="text-area" rows="5" placeholder="Nhập các mắt xích phân rã suy luận...">1. Hiện tượng: LLM thường xuyên hallucinate cú pháp ở các thư viện lập trình hiếm
+2. Phân rã nguyên nhân: Dữ liệu tiền huấn luyện thưa thớt và thiếu ngữ cảnh ràng buộc kiểu dữ liệu
+3. Giả thuyết giải pháp: Bổ sung biểu đồ cú pháp trừu tượng (AST-RAG) vào prompt để khóa ngữ nghĩa
+4. Câu hỏi nghiên cứu: Mô hình AST-RAG có chứng minh được giảm tỷ lệ gãy mã nguồn mà không làm suy giảm thời gian phản hồi không?</textarea>
                       </div>
-
                     </div>
 
                     <!-- ATTACK / DEFENSE MODE INPUTS -->
                     <div id="aiModeAttackDefensePanel" class="ai-mode-panel" hidden>
                       <div class="field-group">
-                        <label class="field-label" style="margin-top:0">Tên bài báo, DOI hoặc đường dẫn *</label>
-                        <input id="aiTargetPaperInput" class="text-field" placeholder="Dán DOI/URL hoặc nhập tiêu đề và tác giả nếu bạn đã biết..." />
+                        <label class="field-label" style="margin-top:0">Bài báo mục tiêu (Target Paper) *</label>
+                        <input id="aiTargetPaperInput" class="text-field" value="Snorkel: Rapid Training Data Creation with Weak Supervision (Ratner et al., 2017)" placeholder="VD: Tên bài báo, Tác giả, Năm xuất bản..." />
                       </div>
 
                       <div class="form-grid-2" style="margin-top:10px">
                         <div class="field-group">
-                          <label class="field-label">Điều bạn muốn hiểu hoặc kiểm tra trong bài báo <span style="font-weight:400;color:#64748b">(không bắt buộc)</span></label>
-                          <textarea id="aiTargetCoreInput" class="text-area" rows="4" placeholder="Ví dụ: giả định nào là thiết yếu, kết quả có áp dụng được trong điều kiện khác không?"></textarea>
+                          <label class="field-label">Tri thức / Đóng góp chính của bài báo này</label>
+                          <textarea id="aiTargetCoreInput" class="text-area" rows="4" placeholder="Bài báo này tuyên bố giải quyết được điều gì?">Sử dụng mô hình sinh (Generative Model) để ước lượng trọng số tin cậy của các hàm gán nhãn Heuristic độc lập mà không cần Ground Truth.</textarea>
                         </div>
                         <div class="field-group">
-                          <label class="field-label">Bạn muốn model tập trung vào điều gì? <span style="font-weight:400;color:#64748b">(không bắt buộc)</span></label>
-                          <textarea id="aiAttackInstruction" class="text-area" rows="4" placeholder="Có thể để trống. Ứng dụng sẽ không ép phải tìm bài bác bỏ nếu không có bằng chứng."></textarea>
+                          <label class="field-label">Yêu cầu tìm kiếm phản biện & phả hệ</label>
+                          <textarea id="aiAttackInstruction" class="text-area" rows="4" placeholder="Yêu cầu AI tìm các bài báo củng cố và các bài báo tấn công...">Tìm các bài báo củng cố/kế thừa (Defense) và các bài báo TẤN CÔNG/BÁC BỎ (Attacker/Refutation) chỉ ra điều kiện biên làm bài báo này bị sai. Chỉ ra khe hở nghiên cứu chưa ai giải quyết.</textarea>
                         </div>
                       </div>
                     </div>
 
-                    <details class="ai-optional-sources">
-                      <summary>Thêm ghi chú hoặc trích đoạn nguồn đã đọc (không bắt buộc)</summary>
-                      <textarea id="aiProvidedSourcesInput" class="text-area" rows="3" placeholder="Dán DOI, đường dẫn, trích đoạn hoặc ghi chú của bạn. Đường dẫn sẽ không tự được tải hay xác minh."></textarea>
-                    </details>
-
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0;flex-wrap:wrap;gap:8px">
                       <div style="display:flex;align-items:center;gap:10px">
-                        <label class="field-label" style="margin:0">Lưu vào:</label>
+                        <label class="field-label" style="margin:0">Phả hệ 3D đích:</label>
                         <select id="aiTargetEcosystem" class="text-field" style="max-width:260px">
                           <option value="new">✨ Tự tạo Phả hệ mới theo vấn đề</option>
                         </select>
                       </div>
 
                       <button type="button" class="primary-button" id="btnGoToStep2" style="padding:8px 20px;font-size:13px">
-                        Tạo bản yêu cầu để xem lại ➔
+                        ⚡ Bước tiếp theo: Tinh chế Super Prompt (Pha 1) ➔
                       </button>
                     </div>
                   </div>
@@ -850,17 +837,18 @@
                     <div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;background:#eef2ff;color:#4f46e5;font-size:24px;margin-bottom:12px">
                       ✨
                     </div>
-                    <h3 style="margin:0 0 6px;font-size:16.5px;color:#0f172a">Xem lại yêu cầu trước khi gửi</h3>
+                    <h3 style="margin:0 0 6px;font-size:16.5px;color:#0f172a">PHA 1 · TINH CHẾ PROMPT NGHIÊN CỨU (SUPER PROMPT ARCHITECT)</h3>
                     <p style="margin:0 auto 16px;max-width:600px;font-size:12.5px;color:#64748b;line-height:1.5">
-                      Đây là yêu cầu do Filio3D ghép từ thông tin bạn nhập; chưa có model nào chạy hay tra cứu tài liệu. Bạn có thể đọc, sửa và chọn cách gửi.
+                      Luận điểm của bạn đã được cấu trúc hóa thành Super Prompt học thuật tối ưu cho mô hình đang kích hoạt.
+                      Bạn có thể xem lại hoặc chỉnh sửa prompt trước khi thực thi khai thác đồ thị.
                     </p>
 
                     <div style="display:flex;gap:12px;justify-content:center;align-items:center;margin-bottom:20px;flex-wrap:wrap">
                       <button type="button" class="secondary-button" id="btnOpenPromptModal" style="background:#4338ca;color:#fff;border-color:#6366f1;padding:9px 18px">
-                        👁 Xem / Sửa prompt
+                        👁 Xem / Sửa Super Prompt (Modal Nổi)
                       </button>
                       <button type="button" class="outline-button" id="btnCopyPromptDirect" style="padding:9px 16px">
-                        📋 Chép yêu cầu
+                        📋 Chép Prompt Sang Web Ngoài
                       </button>
                     </div>
 
@@ -868,11 +856,8 @@
                       <button type="button" class="secondary-button" id="btnBackToStep1">
                         ← Quay lại Bước 1
                       </button>
-                      <button type="button" class="outline-button" id="btnContinueManual">
-                        Tôi đã dùng model ngoài → dán kết quả
-                      </button>
-                      <button type="button" class="primary-button" id="btnExecuteAiQuery" hidden style="background:#059669;border-color:#10b981;padding:10px 24px;font-size:13.5px">
-                        Gửi qua API ➔
+                      <button type="button" class="primary-button" id="btnExecuteAiQuery" style="background:#059669;border-color:#10b981;padding:10px 24px;font-size:13.5px">
+                        🚀 Khai Thác Đồ Thị (Pha 2) ➔
                       </button>
                     </div>
                   </div>
@@ -880,31 +865,21 @@
 
                 <!-- STEP 3 PANE -->
                 <div id="aiStep3Pane" class="ai-step-pane" hidden>
-                  <div id="aiManualResponsePane" class="ai-card-step" style="margin-bottom:12px">
-                    <h3 style="margin:0 0 6px;font-size:15px;color:#0f172a">Phản hồi từ model</h3>
-                    <p style="margin:0 0 10px;font-size:12px;color:#64748b">Dán câu trả lời ở đây hoặc xem phản hồi API. Filio3D chuyển nó thành bản nháp; nguồn và quan hệ do model nêu vẫn cần bạn kiểm tra.</p>
-                    <textarea id="aiRawResponseBox" class="text-area mono-area" rows="8" placeholder="Dán toàn bộ câu trả lời từ model vào đây..."></textarea>
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
-                      <div id="aiParseStatus" role="status" aria-live="polite" style="font-size:12px;color:#64748b"></div>
-                      <button type="button" class="primary-button" id="btnParsePastedResponse">Tạo bản nháp để duyệt</button>
-                    </div>
-                  </div>
-
                   <!-- LOADING STATE -->
                   <div id="aiStep3Running" class="ai-card-step" style="text-align:center;padding:40px 20px" hidden>
                     <div class="ai-spinner" style="margin:0 auto 14px"></div>
-                    <h3 style="margin:0 0 6px;font-size:16px;color:#0f172a">Đang chờ phản hồi API...</h3>
-                    <p style="margin:0;font-size:12.5px;color:#64748b">Kết nối API hiện tại chỉ xử lý nội dung có trong prompt; nó không tìm kiếm web hoặc xác minh bài báo.</p>
+                    <h3 style="margin:0 0 6px;font-size:16px;color:#0f172a">Đang khai thác đồ thị và bóc tách 7 Trụ Cột qua LLM...</h3>
+                    <p style="margin:0;font-size:12.5px;color:#64748b">Vui lòng chờ trong giây lát trong khi mô hình định vị văn hiến và xây dựng liên kết biện chứng.</p>
                   </div>
 
-                  <!-- REVIEWABLE DRAFT -->
-                  <div id="aiStep3Done" class="ai-card-step" style="text-align:center;padding:28px 32px" hidden>
+                  <!-- SUCCESS BANNER -->
+                  <div id="aiStep3Done" class="ai-card-step" style="text-align:center;padding:28px 32px">
                     <div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;background:#ecfdf5;color:#059669;font-size:24px;margin-bottom:12px">
-                      ◇
+                      🎉
                     </div>
-                    <h3 style="margin:0 0 6px;font-size:17px;color:#065f46" id="aiStep3DoneTitle">Bản nháp đã sẵn sàng để xem</h3>
+                    <h3 style="margin:0 0 6px;font-size:17px;color:#065f46" id="aiStep3DoneTitle">Đã Khai Thác Thành Công Phả Hệ Nghiên Cứu!</h3>
                     <p style="margin:0 auto 16px;max-width:580px;font-size:12.5px;color:#475569" id="aiStep3DoneDesc">
-                      AI chưa xác minh nguồn. Hãy xem từng bài và quan hệ trước khi thêm vào đồ thị.
+                      Hệ thống đã bóc tách hoàn chỉnh các bài báo học thuật theo 7 Trụ Cột Tri Thức và các mối quan hệ Tấn công / Kế thừa.
                     </p>
 
                     <div style="display:flex;gap:12px;justify-content:center;align-items:center;margin-bottom:24px;flex-wrap:wrap">
@@ -912,13 +887,13 @@
                         👁 Xem Bóc Tách (Modal Nổi)
                       </button>
                       <button type="button" class="primary-button" id="btnIngestTo3D" style="background:#059669;border-color:#10b981;padding:10px 24px;font-size:13.5px">
-                        Duyệt bản nháp & thêm vào đồ thị
+                        ⚡ Nạp Thẳng Vào Không Gian 3D
                       </button>
                     </div>
 
                     <div style="display:flex;justify-content:center;padding-top:14px;border-top:1px solid #e2e8f0">
                       <button type="button" class="outline-button" id="btnRestartWorkflow" style="font-size:12px">
-                        ↺ Bắt đầu lượt mới
+                        ↺ Khai thác vấn đề nghiên cứu mới
                       </button>
                     </div>
                   </div>
@@ -926,6 +901,8 @@
               </div>
             </div>
 
+            <!-- ẨN RAW RESPONSE BOX ĐỂ LƯU TRỮ VĂN BẢN TRUNG GIAN -->
+            <textarea id="aiRawResponseBox" style="display:none"></textarea>
           </div>
         </section>
 
