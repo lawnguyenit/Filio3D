@@ -187,7 +187,7 @@ export function renderMatrixTab(switchViewFn) {
                       <h3 class="visual-gap-title">${escapeHTML(g.title)}</h3>
                       <p class="visual-gap-desc">${escapeHTML(g.summary)}</p>
                       <div class="matrix-section-block block-conditions">
-                        <span class="block-label">⚖️ MIỀN ĐIỀU KIỆN CHƯA AI GIẢI QUYẾT</span>
+                        <span class="block-label">⚖️ MIỀN ĐIỀU KIỆN CẦN KIỂM TRA</span>
                         <div>${escapeHTML(g.missingCondition)}</div>
                       </div>
                     </div>`;

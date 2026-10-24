@@ -10,6 +10,15 @@ import { promoteGapToQuestion } from '../engine/gapEngine.js';
 import { sceneState, buildSceneGraph, fitCameraToVisibleScene } from '../engine/spatial3DEngine.js';
 import { $, $$, escapeHTML, shortAuthor, notify } from '../utils/dom.js';
 
+function safeExternalUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : '';
+  } catch (e) {
+    return '';
+  }
+}
+
 export function renderFloatingInspector() {
   const state = getState();
   const body = $('#inspectorBody');
@@ -40,6 +49,12 @@ export function renderFloatingInspector() {
 
     tag.className = 'node-type-badge badge-paper';
     tag.innerHTML = `<span>BÀI BÁO · ${paper.year}</span> ${provBadgeHtml}`;
+    const paperUrl = safeExternalUrl(paper.url);
+    const paperEvidenceHtml = (paper.sourceEvidence || []).map((item) => {
+      const url = safeExternalUrl(item.url);
+      if (!item.quote && !url) return '';
+      return `<li>${escapeHTML(item.quote || 'Không có trích đoạn')} ${item.pageOrSection ? `<span>(${escapeHTML(item.pageOrSection)})</span>` : ''} ${url ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">Mở nguồn ↗</a>` : ''}</li>`;
+    }).filter(Boolean).join('');
 
     // 2. PHÂN TÍCH PHẢ HỆ BIỆN CHỨNG (DIALECTIC LINEAGE ANALYSIS)
     const incomingRefutes = relatedLinks.filter((r) => r.to === paper.id && (r.type === 'refute' || r.type === 'conflict'));
@@ -58,23 +73,23 @@ export function renderFloatingInspector() {
         const resolverPaper = state.sources.find((s) => s.id === resolverRel.from);
         gapResolutionBanner = `
           <div class="lineage-resolution-alert resolved">
-            🛡️ <b>Đã được giải quyết trong phả hệ:</b> Bài này bị tấn công, nhưng công trình con <b>"${escapeHTML(resolverPaper?.title || resolverRel.from)}"</b> đã giải quyết bằng phương pháp mới. Lỗ hổng đã được khắc phục, toàn bộ phả hệ vẫn vững chắc!
+            🛡️ <b>Đồ thị có một quan hệ hỗ trợ:</b> <b>"${escapeHTML(resolverPaper?.title || resolverRel.from)}"</b> được liên kết như công trình hỗ trợ. Hãy kiểm tra nguồn và điều kiện trước khi xem điểm gãy là đã được giải quyết.
           </div>`;
       } else if (descendants.length > 0) {
         gapResolutionBanner = `
           <div class="lineage-resolution-alert in-progress">
-            🌿 <b>Đang mở rộng:</b> Bài báo có ${descendants.length} công trình con kế thừa đang tiếp tục kiểm chứng và mở rộng giả thiết để chống lại các đòn phản biện.
+            🌿 <b>Có quan hệ kế thừa trong đồ thị:</b> Bài báo có ${descendants.length} công trình được liên kết. Quan hệ và nguồn vẫn cần được kiểm tra.
           </div>`;
       } else {
         gapResolutionBanner = `
           <div class="lineage-resolution-alert unresolved">
-            ⚡ <b>Lỗ hổng chưa ai giải quyết:</b> Bài báo bị tấn công trực diện và chưa có công trình kế thừa nào khắc phục điểm gãy này. Đây là ứng viên sáng giá cho <b>Khe hở nghiên cứu (◇)</b>!
+            ⚡ <b>Ứng viên khe hở:</b> Đồ thị hiện tại có quan hệ bác bỏ nhưng chưa ghi nhận quan hệ kế thừa nào xử lý điểm này. Điều đó chưa chứng minh rằng văn liệu bên ngoài đồ thị chưa giải quyết nó.
           </div>`;
       }
     } else {
       gapResolutionBanner = `
         <div class="lineage-resolution-alert stable">
-          ✓ <b>Giả định ổn định:</b> Chưa có bài báo nào trong phả hệ thực hiện đòn tấn công bác bỏ trực tiếp bài này.
+          ✓ <b>Chưa thấy phản biện trong tập hiện tại:</b> Đồ thị chưa ghi nhận quan hệ bác bỏ cho bài này; điều đó không xác nhận giả định đã ổn định.
         </div>`;
     }
 
@@ -83,6 +98,9 @@ export function renderFloatingInspector() {
         <h3 class="insp-title" style="flex:1;margin-bottom:2px">${escapeHTML(paper.title)}</h3>
       </div>
       <p class="insp-meta">${escapeHTML(paper.authors)} · <b>${escapeHTML(paper.venue)} (${paper.year})</b></p>
+      ${paper.sourceStatus === 'unverified' ? '<p class="source-review-notice">Nguồn do model nêu chưa được xác minh độc lập.</p>' : ''}
+      ${paperUrl ? `<p class="insp-meta"><a href="${escapeHTML(paperUrl)}" target="_blank" rel="noopener noreferrer">Mở trang bài báo ↗</a></p>` : ''}
+      ${paperEvidenceHtml ? `<details class="inspector-source-evidence"><summary>Trích đoạn nguồn (${(paper.sourceEvidence || []).length})</summary><ul>${paperEvidenceHtml}</ul></details>` : ''}
 
       <div style="display:flex;gap:6px;margin-bottom:12px">
         <button class="hud-btn highlight-btn ${isIsolated ? 'active' : ''}" id="btnInspectorIsolate" style="flex:1">
@@ -93,7 +111,7 @@ export function renderFloatingInspector() {
       <!-- TRỤ CỘT 1: ĐÓNG GÓP & TUYÊN BỐ CỐT LÕI -->
       <div class="insp-card insp-core">
         <div class="insp-card-head"><span class="pillar-tag">TRỤ CỘT 1</span> · 💡 ĐÓNG GÓP & TUYÊN BỐ CỐT LÕI</div>
-        <div class="pillar-body">${escapeHTML(paper.coreKnowledge || paper.title)}</div>
+        <div class="pillar-body">${escapeHTML(paper.coreKnowledge || 'Chưa có trong dữ liệu này.')}</div>
       </div>
 
       <!-- TRỤ CỘT 2: QUÁ TRÌNH XÂY DỰNG GIẢI PHÁP -->
@@ -135,13 +153,13 @@ export function renderFloatingInspector() {
       <!-- TRỤ CỘT 4: NGUYÊN LIỆU & QUY MÔ THỰC NGHIỆM -->
       <div class="insp-card insp-materials">
         <div class="insp-card-head"><span class="pillar-tag">TRỤ CỘT 4</span> · 📦 NGUYÊN LIỆU, TÀI NGUYÊN & QUY MÔ</div>
-        <div class="pillar-body">${escapeHTML(paper.materials || 'Dữ liệu thực nghiệm và tài nguyên quy chuẩn theo bài báo.')}</div>
+        <div class="pillar-body">${escapeHTML(paper.materials || 'Chưa có trong dữ liệu này.')}</div>
       </div>
 
       <!-- TRỤ CỘT 5: BẰNG CHỨNG THỰC NGHIỆM & KẾT QUẢ -->
       <div class="insp-card insp-evidence">
         <div class="insp-card-head"><span class="pillar-tag">TRỤ CỘT 5</span> · 📊 BẰNG CHỨNG THỰC NGHIỆM & PHÁT HIỆN</div>
-        <div class="pillar-body">${escapeHTML(paper.evidence || 'Kết quả kiểm nghiệm định lượng và định tính trên tập thử nghiệm chuẩn.')}</div>
+        <div class="pillar-body">${escapeHTML(paper.evidence || 'Chưa có trong dữ liệu này.')}</div>
       </div>
 
       <!-- TRỤ CỘT 6: ĐIỂM GÃY SUY LUẬN & GIỚI HẠN TIỀM ẨN -->
@@ -166,6 +184,12 @@ export function renderFloatingInspector() {
             const otherId = isOut ? rel.to : rel.from;
             const other = state.sources.find((s) => s.id === otherId);
             const st = ARROW_TYPES[rel.type] || ARROW_TYPES.support;
+            const relEvidenceHtml = (rel.sourceEvidence || []).map((item) => {
+              const url = safeExternalUrl(item.url);
+              return item.quote && url
+                ? `<li>${escapeHTML(item.quote)} <a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">Mở nguồn ↗</a></li>`
+                : '';
+            }).filter(Boolean).join('');
             let roleLabel = '';
             if (rel.type === 'refute' || rel.type === 'conflict') {
               roleLabel = isOut ? '⚔️ TẤN CÔNG BÁC BỎ:' : '⚡ BỊ TẤN CÔNG BỞI:';
@@ -183,6 +207,7 @@ export function renderFloatingInspector() {
                     ${roleLabel} ${escapeHTML(other?.title || otherId)}
                   </div>
                   <div style="font-size:10px;color:#94a3b8">${escapeHTML(rel.label)}</div>
+                  ${relEvidenceHtml ? `<details class="inspector-source-evidence"><summary>Nguồn của quan hệ</summary><ul>${relEvidenceHtml}</ul></details>` : ''}
                 </div>
               </div>`;
           })
@@ -198,7 +223,8 @@ export function renderFloatingInspector() {
     });
 
     $$('[data-insp-jump]', body).forEach((el) =>
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (event) => {
+        if (event.target.closest('a, summary')) return;
         sceneState.activeNodeId = el.dataset.inspJump;
         if (sceneState.isolatedFocusNodeId && !sceneState.sceneNodes.some((n) => n.id === sceneState.activeNodeId)) {
           sceneState.isolatedFocusNodeId = sceneState.activeNodeId;
@@ -213,22 +239,22 @@ export function renderFloatingInspector() {
   if (node.type === 'gap') {
     const gap = node.raw;
     tag.className = 'node-type-badge badge-gap';
-    tag.innerHTML = `<span>◇ KHE HỞ NGHIÊN CỨU</span> <span class="provenance-badge prov-algo">◇ Quét Thuật Toán Đồ Thị</span>`;
+    tag.innerHTML = `<span>◇ ỨNG VIÊN KHE HỞ</span> <span class="provenance-badge prov-algo">◇ Quét Thuật Toán Đồ Thị</span>`;
     body.innerHTML = `
       <h3 class="insp-title">${escapeHTML(gap.title)}</h3>
       <p class="insp-meta">${escapeHTML(gap.kind)}</p>
 
       <div class="insp-card insp-algo-prov">
         <div class="insp-card-head" style="color:#60a5fa">🔍 XUẤT XỨ & CƠ CHẾ PHÁT HIỆN</div>
-        <div>Lỗ hổng này được phát hiện tự động bởi <b>Thuật toán Quét Xung đột (Gap Engine)</b> dựa trên các cạnh Tương khắc (conflict) / Bác bỏ (refute) giữa các cặp bài báo trong phả hệ khi chưa có công trình nào thỏa mãn điều kiện còn thiếu.</div>
+        <div>Ứng viên này được tạo từ quan hệ tương khắc (conflict) hoặc bác bỏ (refute) trong đồ thị hiện tại. Hãy kiểm tra bài báo, trích dẫn và phạm vi văn liệu; đây chưa phải bằng chứng rằng khoảng trống thực sự tồn tại.</div>
       </div>
 
       <div class="insp-card insp-limit">
-        <div class="insp-card-head" style="color:#f9a8d4">🔍 TẠI SAO TỒN TẠI LỖ HỔNG NÀY?</div>
+        <div class="insp-card-head" style="color:#f9a8d4">🔍 TÍN HIỆU TỪ ĐỒ THỊ</div>
         <div>${escapeHTML(gap.summary)}</div>
       </div>
       <div class="insp-card insp-cond">
-        <div class="insp-card-head" style="color:#fcd34d">⚖️ ĐIỀU KIỆN CHƯA AI GIẢI QUYẾT</div>
+        <div class="insp-card-head" style="color:#fcd34d">⚖️ ĐIỀU KIỆN CẦN KIỂM TRA</div>
         <div>${escapeHTML(gap.missingCondition)}</div>
       </div>
       <div class="insp-card insp-core">
