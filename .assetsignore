@@ -1,0 +1,12 @@
+.git/
+.playwright-cli/
+.wrangler/
+functions/
+docs/
+node_modules/
+*.md
+*.toml
+package.json
+package-lock.json
+server.js
+worker.js
